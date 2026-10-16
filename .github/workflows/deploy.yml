@@ -25,7 +25,7 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           protocol: ftps
           port: 21
-          server-dir: ./
+          server-dir: /public_html/hltv.relog.gg/
           log-level: verbose
           exclude: |
             **/.git*
