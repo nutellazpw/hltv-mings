@@ -1,6 +1,12 @@
 <?php
 declare(strict_types=1);
 
+function rlg_logo(): string
+{
+    static $svg = null;
+    return $svg ??= (string)@file_get_contents(__DIR__ . '/rlg-logo.svg');
+}
+
 function page_header(string $title, bool $admin = false): void
 {
     $assets = $admin ? '../assets' : 'assets';
@@ -14,7 +20,7 @@ function page_header(string $title, bool $admin = false): void
 <meta name="theme-color" content="#181818">
 <title><?= e($title) ?> · HLTV Awards Mingle</title>
 <link rel="preload" href="<?= $assets ?>/fonts/orbitron-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="<?= $assets ?>/style.css?v=5">
+<link rel="stylesheet" href="<?= $assets ?>/style.css?v=6">
 <link rel="icon" href="<?= $assets ?>/favicon.png">
 </head>
 <body class="<?= $admin ? 'is-admin' : 'is-public' ?>">
@@ -24,6 +30,11 @@ function page_header(string $title, bool $admin = false): void
       <img class="brand-logo" src="<?= $assets ?>/logo-hltv-awards.svg" alt="HLTV Awards presented by 1xBet">
       <span class="brand-sub">Mingle</span>
     </a>
+    <?php if (!$admin): ?>
+    <a class="organiser" href="https://relog.gg" target="_blank" rel="noopener" title="Organised by Relog Media">
+      <span>Organised by</span><?= rlg_logo() ?>
+    </a>
+    <?php endif; ?>
     <?php if ($u): ?>
     <nav class="adminnav">
       <a href="index.php">Sign-ups</a>
@@ -53,8 +64,10 @@ function page_footer(bool $admin = false): void
 </main>
 <footer class="foot">
   <div class="wrap foot-in">
-    <span>HLTV Awards Mingle</span>
-    <span class="foot-by">Organised by <strong>Relog Media</strong></span>
+    <span class="foot-event">HLTV Awards Mingle</span>
+    <a class="foot-by" href="https://relog.gg" target="_blank" rel="noopener">
+      <span>Organised &amp; produced by</span><?= rlg_logo() ?><span class="foot-url">relog.gg</span>
+    </a>
   </div>
 </footer>
 <script src="<?= $assets ?>/app.js?v=4"></script>

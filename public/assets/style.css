@@ -293,3 +293,26 @@ input[type=checkbox], input[type=radio] { width: auto; min-height: 0; accent-col
 .imgprev { width: 240px; max-width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; border: 1px solid var(--line); background: var(--field); }
 .imgprev-empty { display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: var(--track); }
 .imgfield-inputs { flex: 1 1 260px; display: flex; flex-direction: column; gap: 8px; }
+
+/* Organiser (Relog Media / RLG) — kept quiet, monochrome, secondary to HLTV Awards */
+.rlg-logo { display: block; height: 100%; width: auto; }
+.organiser {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 10px; height: 20px;
+  color: rgba(255,255,255,.42); text-decoration: none !important; transition: color .2s;
+}
+.organiser span { font: 600 10px/1 var(--font-body); text-transform: uppercase; letter-spacing: var(--track); color: var(--muted); }
+.organiser .rlg-logo { height: 20px; }
+.organiser:hover { color: #FF6A13; }
+.foot-in { padding-top: 6px; padding-bottom: 6px; }
+.foot-by { color: rgba(255,255,255,.45); text-decoration: none !important; display: inline-flex; align-items: center; gap: 10px; transition: color .2s; }
+.foot-by .rlg-logo { height: 22px; }
+.foot-by span { color: var(--muted); }
+.foot-by .foot-url { color: var(--muted); padding-left: 10px; border-left: 1px solid var(--line); }
+.foot-by:hover { color: #FF6A13; }
+.foot-by:hover .foot-url { color: var(--ecru); }
+@media (max-width: 720px) {
+  .organiser span { display: none; }
+  .organiser .rlg-logo { height: 18px; }
+  .foot-in { justify-content: center; text-align: center; }
+  .foot-event { width: 100%; }
+}
