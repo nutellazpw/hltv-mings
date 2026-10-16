@@ -35,4 +35,5 @@ jobs:
             config.php
             storage/docs/**
             storage/mail.log
+            storage/error.log
             README.md
