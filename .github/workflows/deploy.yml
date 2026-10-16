@@ -17,24 +17,22 @@ jobs:
       - name: Lint PHP
         run: find . -name "*.php" -not -path "./lib/PHPMailer/*" -print0 | xargs -0 -n1 php -l
 
-      - name: Install lftp
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq lftp
-
-      # lftp handles FTPS data-channel TLS session reuse, which basic-ftp (FTP-Deploy-Action) trips over on this server.
-      - name: Upload over FTPS
-        env:
-          FTP_SERVER: ${{ secrets.FTP_SERVER }}
-          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
-          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
-        run: |
-          lftp -u "$FTP_USERNAME","$FTP_PASSWORD" "$FTP_SERVER" <<'EOF'
-          set cmd:fail-exit true
-          set ftp:ssl-force true
-          set ftp:ssl-protect-data true
-          set ftp:passive-mode true
-          set net:max-retries 3
-          set net:timeout 30
-          set net:reconnect-interval-base 5
-          mirror --reverse --verbose --parallel=3 --exclude ^\.git/ --exclude ^\.github/ --exclude-glob .git* --exclude ^\.htaccess$ --exclude ^README\.md$ --exclude ^config\.php$ --exclude ^storage/docs/ --exclude ^storage/mail\.log$ ./ ./
-          bye
-          EOF
+      - name: FTP deploy
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          server-dir: /public_html/hltv.relog.gg/
+          log-level: verbose
+          exclude: |
+            **/.git*
+            **/.git*/**
+            .github/**
+            .htaccess
+            config.php
+            storage/docs/**
+            storage/mail.log
+            README.md
