@@ -103,9 +103,10 @@ page_header('Sign up');
   <?php if (isset($errors['primary'])): ?><p class="err"><?= e($errors['primary']) ?></p><?php endif; ?>
   <div class="acts" data-group="primary">
     <?php foreach ($acts as $a): ?>
-    <label class="act">
+    <label class="act<?= activity_image($a) ? ' has-img' : '' ?>">
       <input type="radio" name="primary" value="<?= (int)$a['id'] ?>" <?= $old['primary'] === (string)$a['id'] ? 'checked' : '' ?>>
       <span class="act-body">
+        <?php if ($src = activity_image($a)): ?><span class="act-img" style="background-image:url('<?= e($src) ?>')"></span><?php endif; ?>
         <strong><?= e($a['name']) ?></strong>
         <?php if ($a['description']): ?><small><?= e($a['description']) ?></small><?php endif; ?>
       </span>

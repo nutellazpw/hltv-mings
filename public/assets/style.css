@@ -270,3 +270,26 @@ input[type=checkbox], input[type=radio] { width: auto; min-height: 0; accent-col
   .hero-logo { width: 92px; margin-bottom: 22px; }
   body.is-public { background-attachment: scroll; }
 }
+
+/* Activity images */
+.acts[data-group="primary"] { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+.act.has-img .act-body { padding-top: 0; }
+.act-img {
+  display: block; margin: 0 -16px 13px -18px; aspect-ratio: 16 / 9;
+  background: #0d0d0d center / cover no-repeat;
+  filter: grayscale(.35) contrast(1.05) brightness(.82);
+  transition: filter .2s, transform .2s;
+  position: relative;
+}
+.act-img::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(24,24,24,0) 45%, rgba(24,24,24,.55) 100%); }
+.act:hover .act-img { filter: grayscale(0) contrast(1.05) brightness(.95); }
+.act input:checked + .act-body .act-img { filter: none; }
+.act input:checked + .act-body .act-img::after { background: linear-gradient(180deg, rgba(225,198,147,0) 55%, rgba(225,198,147,.35) 100%); }
+.act.has-img input:checked + .act-body::after {
+  content: "✓ 1st choice"; position: absolute; top: 10px; right: 10px; z-index: 1;
+  background: var(--ecru); color: var(--ink); font: 700 10px/1 var(--font-body); letter-spacing: var(--track); text-transform: uppercase; padding: 6px 8px 5px;
+}
+.imgfield { display: flex; gap: 14px; align-items: flex-start; flex-wrap: wrap; }
+.imgprev { width: 240px; max-width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; border: 1px solid var(--line); background: var(--field); }
+.imgprev-empty { display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: var(--track); }
+.imgfield-inputs { flex: 1 1 260px; display: flex; flex-direction: column; gap: 8px; }

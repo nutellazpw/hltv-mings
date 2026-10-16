@@ -14,7 +14,7 @@ function page_header(string $title, bool $admin = false): void
 <meta name="theme-color" content="#181818">
 <title><?= e($title) ?> · HLTV Awards Mingle</title>
 <link rel="preload" href="<?= $assets ?>/fonts/orbitron-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="<?= $assets ?>/style.css?v=4">
+<link rel="stylesheet" href="<?= $assets ?>/style.css?v=5">
 <link rel="icon" href="<?= $assets ?>/favicon.png">
 </head>
 <body class="<?= $admin ? 'is-admin' : 'is-public' ?>">

@@ -36,4 +36,5 @@ jobs:
             storage/docs/**
             storage/mail.log
             storage/error.log
+            public/uploads/**
             README.md

@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS hm_activities (
   capacity INT NOT NULL DEFAULT 0, -- 0 = unlimited
   is_open TINYINT(1) NOT NULL DEFAULT 1,
   results_published TINYINT(1) NOT NULL DEFAULT 0,
+  image VARCHAR(500) NULL,         -- uploaded file (uploads/...) or full https URL
   sort_order INT NOT NULL DEFAULT 0,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -88,14 +89,15 @@ CREATE TABLE IF NOT EXISTS hm_mail_log (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Activities from the meeting (capacity 0 = unlimited; main admin sets limits in the panel)
-INSERT INTO hm_activities (name, description, capacity, sort_order) VALUES
-('Shooting range 1 (Barutana)', NULL, 0, 1),
-('Shooting range 2 (Mus)', NULL, 0, 2),
-('Padel by GRID', NULL, 0, 3),
-('Football tournament', NULL, 0, 4),
-('Karting', NULL, 0, 5),
-('Pilates', 'Subject to number of sign-ups.', 0, 6);
+INSERT INTO hm_activities (name, description, capacity, sort_order, image) VALUES
+('Shooting range 1 (Barutana)', NULL, 0, 1, 'https://images.unsplash.com/photo-1577905027675-fcbe1521b1c8?w=1200&h=675&fit=crop&q=80&auto=format'),
+('Shooting range 2 (Mus)', NULL, 0, 2, 'https://images.unsplash.com/photo-1687384475723-6a1c70a91920?w=1200&h=675&fit=crop&q=80&auto=format'),
+('Padel by GRID', NULL, 0, 3, 'https://images.unsplash.com/photo-1657704358775-ed705c7388d2?w=1200&h=675&fit=crop&q=80&auto=format'),
+('Football tournament', NULL, 0, 4, 'https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?w=1200&h=675&fit=crop&q=80&auto=format'),
+('Karting', NULL, 0, 5, 'https://images.unsplash.com/photo-1640084347692-e8f6b84caa7c?w=1200&h=675&fit=crop&q=80&auto=format'),
+('Pilates', 'Subject to number of sign-ups.', 0, 6, 'https://images.unsplash.com/photo-1747239685045-fcbcf98985db?w=1200&h=675&fit=crop&q=80&auto=format');
 
 INSERT INTO hm_settings (k, v) VALUES
+('schema_version', '2'),
 ('signups_open', '1'),
 ('intro_text', 'Pick the activity you would like to join during HLTV Awards week, plus a backup choice. Spots are limited — we will confirm your place by email.');

@@ -178,3 +178,36 @@ function full_name(array $s): string
 {
     return trim($s['first_name'] . ' ' . $s['last_name']);
 }
+
+/* ---------- Activity images ---------- */
+/** Public URL for an activity image (uploaded file or external https URL), or null. */
+function activity_image(?array $a, bool $admin = false): ?string
+{
+    $img = trim((string)($a['image'] ?? ''));
+    if ($img === '') return null;
+    if (preg_match('#^https://#i', $img)) return $img;
+    return ($admin ? '../' : '') . ltrim($img, '/');
+}
+
+/* ---------- Schema upgrades for databases created by an older install.sql ---------- */
+function migrate(): void
+{
+    $v = (int)setting('schema_version', '1');
+    if ($v < 2) {
+        $has = q("SHOW COLUMNS FROM hm_activities LIKE 'image'")->fetch();
+        if (!$has) q('ALTER TABLE hm_activities ADD COLUMN image VARCHAR(500) NULL AFTER results_published');
+        $U = 'https://images.unsplash.com/photo-%s?w=1200&h=675&fit=crop&q=80&auto=format';
+        $defaults = [
+            'Shooting range 1 (Barutana)' => '1577905027675-fcbe1521b1c8',
+            'Shooting range 2 (Mus)' => '1687384475723-6a1c70a91920',
+            'Padel by GRID' => '1657704358775-ed705c7388d2',
+            'Football tournament' => '1431324155629-1a6deb1dec8d',
+            'Karting' => '1640084347692-e8f6b84caa7c',
+            'Pilates' => '1747239685045-fcbcf98985db',
+        ];
+        foreach ($defaults as $name => $id) {
+            q("UPDATE hm_activities SET image = ? WHERE name = ? AND (image IS NULL OR image = '')", [sprintf($U, $id), $name]);
+        }
+        set_setting('schema_version', '2');
+    }
+}

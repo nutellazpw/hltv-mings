@@ -4,3 +4,4 @@ storage/docs/*
 storage/mail.log
 .DS_Store
 storage/error.log
+public/uploads/*
