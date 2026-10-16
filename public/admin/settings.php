@@ -40,13 +40,14 @@ page_header('Settings', true);
     <h2>Mail log <small>last 50 · <?= $failed ?> failed total</small></h2>
     <form method="post"><?= csrf_field() ?><button class="btn" name="do" value="test_mail">Send test email to me</button></form>
   </div>
+  <p class="small muted">Sending from <code><?= e(cfg('smtp.from')) ?></code> via <code><?= e(cfg('smtp.host')) ?>:<?= (int)cfg('smtp.port') ?></code> (<?= e(cfg('smtp.secure')) ?>), login <code><?= e(cfg('smtp.user')) ?></code>.</p>
   <?php if (cfg('mail_dry_run')): ?><p class="err">Dry-run mode is ON in config.php — emails are only written to storage/mail.log.</p><?php endif; ?>
   <table class="tbl small">
     <thead><tr><th>Time</th><th>To</th><th>Subject</th><th>Status</th></tr></thead>
     <tbody>
     <?php foreach ($log as $l): ?>
       <tr><td><?= e(date('d.m. H:i:s', strtotime($l['created_at']))) ?></td><td><?= e($l['to_email']) ?></td><td><?= e($l['subject']) ?></td>
-      <td><?= $l['ok'] ? '<span class="badge badge-accepted">sent</span>' : '<span class="badge badge-declined" title="' . e($l['error']) . '">failed</span> <span class="muted">' . e(mb_substr((string)$l['error'], 0, 80)) . '</span>' ?></td></tr>
+      <td><?php if ($l['ok']): ?><span class="badge badge-accepted">sent</span><?php else: ?><span class="badge badge-declined">failed</span><details class="errlog"><summary><?= e(mb_substr(strtok((string)$l['error'], "\n"), 0, 90)) ?></summary><pre><?= e($l['error']) ?></pre></details><?php endif; ?></td></tr>
     <?php endforeach; ?>
     </tbody>
   </table>

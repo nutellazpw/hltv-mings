@@ -26,6 +26,13 @@ function send_mail(string $to, string $subject, array $paragraphs, ?array $butto
         try {
             $m = new PHPMailer(true);
             $m->isSMTP();
+            $dbg = '';
+            $m->SMTPDebug = 2;
+            $m->Debugoutput = function ($str) use (&$dbg) {
+                // keep the conversation, never the AUTH payload
+                if (stripos($str, 'AUTH') === false && !preg_match('/^CLIENT -> SERVER: [A-Za-z0-9+\/=]{8,}\s*$/', trim($str))) $dbg .= trim($str) . "\n";
+            };
+            $m->Timeout = 20;
             $m->Host = cfg('smtp.host');
             $m->Port = (int)cfg('smtp.port', 465);
             $m->SMTPAuth = true;
@@ -42,7 +49,7 @@ function send_mail(string $to, string $subject, array $paragraphs, ?array $butto
             $m->send();
             $ok = true;
         } catch (Throwable $ex) {
-            $err = $ex->getMessage();
+            $err = $ex->getMessage() . (isset($dbg) && $dbg !== '' ? "\n--- SMTP log ---\n" . mb_substr($dbg, -1500) : '');
         }
     }
 
