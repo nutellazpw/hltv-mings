@@ -104,6 +104,8 @@ $rows = q('SELECT s.*, g.name AS group_name FROM hm_signups s LEFT JOIN hm_group
 
 $counts = ['all' => 0, 'pending' => 0, 'accepted' => 0, 'declined' => 0];
 foreach (q('SELECT status, COUNT(*) c FROM hm_signups GROUP BY status')->fetchAll() as $c) { $counts[$c['status']] = (int)$c['c']; $counts['all'] += (int)$c['c']; }
+$checkedIn = (int)q("SELECT COUNT(*) FROM hm_signups WHERE status = 'accepted' AND checked_in = 1")->fetchColumn();
+$qs = fn(array $over) => '?' . http_build_query(array_filter(array_merge(['status' => $fStatus, 'a' => $fAct ?: null, 'q' => $fQ ?: null], $over), fn($v) => $v !== null && $v !== ''));
 
 page_header('Sign-ups', true);
 ?>
@@ -112,94 +114,120 @@ page_header('Sign-ups', true);
   <a class="btn" href="?export=1">Export CSV</a>
 </div>
 
+<div class="stats">
+  <a class="stat<?= $counts['pending'] ? ' stat-hot' : '' ?>" href="<?= e($qs(['status' => 'pending'])) ?>"><strong><?= $counts['pending'] ?></strong><span>To review</span></a>
+  <a class="stat" href="<?= e($qs(['status' => 'accepted'])) ?>"><strong><?= $counts['accepted'] ?></strong><span>Accepted</span></a>
+  <a class="stat" href="<?= e($qs(['status' => 'declined'])) ?>"><strong><?= $counts['declined'] ?></strong><span>Declined</span></a>
+  <a class="stat" href="checkin.php"><strong><?= $checkedIn ?></strong><span>Checked in</span></a>
+</div>
+
+<h2 class="section-label">Capacity <small>tap to filter</small></h2>
 <div class="capgrid">
-  <?php foreach ($acts as $a): $full = !has_room($a); ?>
-  <a class="cap<?= $full ? ' cap-full' : '' ?><?= $fAct === (int)$a['id'] ? ' on' : '' ?>" href="?status=<?= e($fStatus) ?>&a=<?= (int)$a['id'] ?>">
-    <span><?= e($a['name']) ?></span><strong><?= e(capacity_label($a)) ?></strong>
-    <?php if (!$a['is_open']): ?><small>closed</small><?php endif; ?>
+  <?php foreach ($acts as $a): $full = !has_room($a);
+    $pct = (int)$a['capacity'] > 0 ? min(100, (int)round($a['accepted_count'] / $a['capacity'] * 100)) : 0; ?>
+  <a class="cap<?= $full ? ' cap-full' : '' ?><?= $fAct === (int)$a['id'] ? ' on' : '' ?>" href="<?= e($qs(['a' => $fAct === (int)$a['id'] ? null : (int)$a['id']])) ?>">
+    <span><?= e($a['name']) ?></span>
+    <strong><?= e(capacity_label($a)) ?></strong>
+    <i class="capbar"><b style="width:<?= (int)$a['capacity'] > 0 ? $pct : 0 ?>%"></b></i>
+    <?php if (!$a['is_open']): ?><small>hidden on form</small><?php endif; ?>
   </a>
   <?php endforeach; ?>
 </div>
 
+<nav class="tabs tabs-scroll">
+  <?php foreach (['pending' => 'Pending', 'accepted' => 'Accepted', 'declined' => 'Declined', 'all' => 'All'] as $k => $lbl): ?>
+    <a class="<?= $fStatus === $k ? 'on' : '' ?>" href="<?= e($qs(['status' => $k])) ?>"><?= $lbl ?> <span><?= $counts[$k] ?></span></a>
+  <?php endforeach; ?>
+</nav>
 <form class="filters" method="get">
-  <nav class="tabs">
-    <?php foreach (['pending' => 'Pending', 'accepted' => 'Accepted', 'declined' => 'Declined', 'all' => 'All'] as $k => $lbl): ?>
-      <a class="<?= $fStatus === $k ? 'on' : '' ?>" href="?<?= e(http_build_query(['status' => $k, 'a' => $fAct ?: null, 'q' => $fQ ?: null])) ?>"><?= $lbl ?> <span><?= $counts[$k] ?></span></a>
-    <?php endforeach; ?>
-  </nav>
   <input type="hidden" name="status" value="<?= e($fStatus) ?>">
-  <select name="a" onchange="this.form.submit()">
+  <select name="a" onchange="this.form.submit()" aria-label="Activity">
     <option value="0">All activities</option>
     <?php foreach ($acts as $a): ?><option value="<?= (int)$a['id'] ?>" <?= $fAct === (int)$a['id'] ? 'selected' : '' ?>><?= e($a['name']) ?></option><?php endforeach; ?>
   </select>
-  <input type="search" name="q" value="<?= e($fQ) ?>" placeholder="Search name, email, phone">
-  <button class="btn" type="submit">Filter</button>
+  <input type="search" name="q" value="<?= e($fQ) ?>" placeholder="Search name, email, phone" aria-label="Search">
+  <button class="btn" type="submit">Search</button>
+  <?php if ($fAct || $fQ !== ''): ?><a class="btn btn-ghost" href="<?= e('?status=' . $fStatus) ?>">Clear</a><?php endif; ?>
 </form>
 
 <?php if (!$rows): ?>
-  <div class="card"><p class="muted">No sign-ups here.</p></div>
+  <div class="card empty"><p class="muted">No sign-ups here<?= $fStatus === 'pending' ? ' — nothing waiting for review.' : '.' ?></p></div>
 <?php endif; ?>
 
 <div class="rows">
 <?php foreach ($rows as $r):
   $p1 = $byId[(int)$r['primary_activity_id']] ?? null;
   $p2 = $byId[(int)$r['secondary_activity_id']] ?? null;
-  $cur = $byId[(int)$r['activity_id']] ?? null; ?>
-  <div class="row card">
-    <div class="row-main">
+  $cur = $byId[(int)$r['activity_id']] ?? null;
+  $inAct = $r['status'] === 'accepted' ? (int)$r['activity_id'] : 0; ?>
+  <article class="row card row-<?= e($r['status']) ?>">
+    <header class="row-head">
       <div class="who">
-        <strong><?= e(full_name($r)) ?></strong> <?= status_badge($r['status']) ?>
+        <strong><?= e(full_name($r)) ?></strong>
+        <?= status_badge($r['status']) ?>
         <?php if ($r['checked_in']): ?><span class="badge badge-in">Checked in</span><?php endif; ?>
-        <div class="small muted"><a href="mailto:<?= e($r['email']) ?>"><?= e($r['email']) ?></a> · <a href="tel:<?= e($r['phone']) ?>"><?= e($r['phone']) ?></a> · <?= e(date('d.m. H:i', strtotime($r['created_at']))) ?></div>
       </div>
-      <div class="choices small">
-        <div><span class="muted">1st</span> <?= e($p1['name'] ?? '—') ?> <?php if ($p1): ?><span class="<?= has_room($p1) ? 'muted' : 'full' ?>">(<?= e(capacity_label($p1)) ?>)</span><?php endif; ?></div>
-        <div><span class="muted">2nd</span> <?= e($p2['name'] ?? '—') ?> <?php if ($p2): ?><span class="<?= has_room($p2) ? 'muted' : 'full' ?>">(<?= e(capacity_label($p2)) ?>)</span><?php endif; ?></div>
-        <?php if ($r['status'] === 'accepted'): ?><div><span class="muted">In</span> <strong><?= e($cur['name'] ?? '—') ?></strong><?= $r['group_name'] ? ' · ' . e($r['group_name']) : '' ?></div><?php endif; ?>
-      </div>
+      <time class="small muted"><?= e(date('d.m. H:i', strtotime($r['created_at']))) ?></time>
+    </header>
+    <div class="contact">
+      <a href="mailto:<?= e($r['email']) ?>"><?= e($r['email']) ?></a>
+      <a href="tel:<?= e(preg_replace('/[^0-9+]/', '', $r['phone'])) ?>"><?= e($r['phone']) ?></a>
+    </div>
+    <div class="chips">
+      <span class="chip<?= $inAct && $p1 && $inAct === (int)$p1['id'] ? ' chip-in' : '' ?>"><em>1st</em><?= e($p1['name'] ?? '—') ?><?php if ($p1): ?> <b class="<?= has_room($p1) ? '' : 'full' ?>"><?= e(capacity_label($p1)) ?></b><?php endif; ?></span>
+      <?php if ($p2): ?><span class="chip<?= $inAct === (int)$p2['id'] ? ' chip-in' : '' ?>"><em>2nd</em><?= e($p2['name']) ?> <b class="<?= has_room($p2) ? '' : 'full' ?>"><?= e(capacity_label($p2)) ?></b></span><?php endif; ?>
+      <?php if ($inAct && (!$p1 || $inAct !== (int)$p1['id']) && (!$p2 || $inAct !== (int)$p2['id'])): ?><span class="chip chip-in"><em>In</em><?= e($cur['name'] ?? '—') ?></span><?php endif; ?>
+      <?php if ($r['group_name']): ?><span class="chip"><em>Group</em><?= e($r['group_name']) ?></span><?php endif; ?>
     </div>
     <form method="post" class="row-actions">
       <?= csrf_field() ?>
       <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
-      <label class="check small"><input type="checkbox" name="notify" value="1" checked> email guest</label>
-      <?php $inAct = $r['status'] === 'accepted' ? (int)$r['activity_id'] : 0; ?>
-      <?php if ($p1 && $inAct !== (int)$p1['id']): ?><button class="btn btn-ok" name="do" value="accept_primary">Accept 1st</button><?php endif; ?>
-      <?php if ($p2 && $inAct !== (int)$p2['id']): ?><button class="btn btn-ok2" name="do" value="accept_secondary">Accept 2nd</button><?php endif; ?>
-      <?php if ($r['status'] !== 'declined'): ?><button class="btn btn-danger" name="do" value="decline" data-confirm="Decline <?= e(full_name($r)) ?>?">Decline</button><?php endif; ?>
-      <details class="more">
-        <summary class="btn">More</summary>
-        <div class="more-body">
-          <div class="inline">
-            <select name="activity_id">
-              <?php foreach ($acts as $a): ?><option value="<?= (int)$a['id'] ?>"><?= e($a['name']) ?> (<?= e(capacity_label($a)) ?>)</option><?php endforeach; ?>
-            </select>
-            <button class="btn" name="do" value="accept_other">Accept into this</button>
-          </div>
+      <div class="row-buttons">
+        <?php if ($p1 && $inAct !== (int)$p1['id']): ?><button class="btn btn-ok" name="do" value="accept_primary"<?= has_room($p1) ? '' : ' disabled title="Full"' ?>>Accept 1st</button><?php endif; ?>
+        <?php if ($p2 && $inAct !== (int)$p2['id']): ?><button class="btn btn-ok2" name="do" value="accept_secondary"<?= has_room($p2) ? '' : ' disabled title="Full"' ?>>Accept 2nd</button><?php endif; ?>
+        <?php if ($r['status'] !== 'declined'): ?><button class="btn btn-danger" name="do" value="decline" data-confirm="Decline <?= e(full_name($r)) ?>?">Decline</button><?php endif; ?>
+      </div>
+      <label class="check small notify"><input type="checkbox" name="notify" value="1" checked> Email guest</label>
+    </form>
+    <details class="more">
+      <summary>More options</summary>
+      <div class="more-body">
+        <form method="post" class="more-section">
+          <?= csrf_field() ?>
+          <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
+          <input type="hidden" name="notify" value="1">
+          <label class="field"><span>Accept into another activity (emails guest)</span>
+            <span class="inline">
+              <select name="activity_id">
+                <?php foreach ($acts as $a): ?><option value="<?= (int)$a['id'] ?>"><?= e($a['name']) ?> (<?= e(capacity_label($a)) ?>)</option><?php endforeach; ?>
+              </select>
+              <button class="btn" name="do" value="accept_other">Accept</button>
+            </span>
+          </label>
           <div class="inline">
             <button class="btn" name="do" value="resend">Re-send last email</button>
-            <?php if ($r['status'] !== 'pending'): ?><button class="btn" name="do" value="reset" data-confirm="Move back to pending?">Back to pending</button><?php endif; ?>
-            <button class="btn btn-danger" name="do" value="delete" data-confirm="Delete this sign-up permanently?">Delete</button>
+            <?php if ($r['status'] !== 'pending'): ?><button class="btn" name="do" value="reset" data-confirm="Move back to pending? (no email is sent)">Back to pending</button><?php endif; ?>
+            <a class="btn btn-ghost" href="<?= e(status_link($r)) ?>" target="_blank" rel="noopener">Guest page ↗</a>
           </div>
-          <a class="small" href="<?= e(status_link($r)) ?>" target="_blank" rel="noopener">Open guest status page ↗</a>
-        </div>
-      </details>
-    </form>
-    <details class="edit">
-      <summary class="small">Edit details</summary>
-      <form method="post" class="grid2 edit-form">
-        <?= csrf_field() ?>
-        <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
-        <input type="hidden" name="do" value="edit">
-        <label class="field"><span>First name</span><input name="first_name" value="<?= e($r['first_name']) ?>"></label>
-        <label class="field"><span>Last name</span><input name="last_name" value="<?= e($r['last_name']) ?>"></label>
-        <label class="field"><span>Email</span><input name="email" value="<?= e($r['email']) ?>"></label>
-        <label class="field"><span>Phone</span><input name="phone" value="<?= e($r['phone']) ?>"></label>
-        <label class="field"><span>1st choice</span><select name="primary"><option value="0">—</option><?php foreach ($acts as $a): ?><option value="<?= (int)$a['id'] ?>" <?= (int)$r['primary_activity_id'] === (int)$a['id'] ? 'selected' : '' ?>><?= e($a['name']) ?></option><?php endforeach; ?></select></label>
-        <label class="field"><span>2nd choice</span><select name="secondary"><option value="0">—</option><?php foreach ($acts as $a): ?><option value="<?= (int)$a['id'] ?>" <?= (int)$r['secondary_activity_id'] === (int)$a['id'] ? 'selected' : '' ?>><?= e($a['name']) ?></option><?php endforeach; ?></select></label>
-        <div><button class="btn" type="submit">Save</button></div>
-      </form>
+        </form>
+        <form method="post" class="grid2 more-section">
+          <?= csrf_field() ?>
+          <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
+          <input type="hidden" name="do" value="edit">
+          <label class="field"><span>First name</span><input name="first_name" value="<?= e($r['first_name']) ?>"></label>
+          <label class="field"><span>Last name</span><input name="last_name" value="<?= e($r['last_name']) ?>"></label>
+          <label class="field"><span>Email</span><input type="email" name="email" value="<?= e($r['email']) ?>"></label>
+          <label class="field"><span>Phone</span><input type="tel" name="phone" value="<?= e($r['phone']) ?>"></label>
+          <label class="field"><span>1st choice</span><select name="primary"><option value="0">—</option><?php foreach ($acts as $a): ?><option value="<?= (int)$a['id'] ?>" <?= (int)$r['primary_activity_id'] === (int)$a['id'] ? 'selected' : '' ?>><?= e($a['name']) ?></option><?php endforeach; ?></select></label>
+          <label class="field"><span>2nd choice</span><select name="secondary"><option value="0">—</option><?php foreach ($acts as $a): ?><option value="<?= (int)$a['id'] ?>" <?= (int)$r['secondary_activity_id'] === (int)$a['id'] ? 'selected' : '' ?>><?= e($a['name']) ?></option><?php endforeach; ?></select></label>
+          <div class="inline span2">
+            <button class="btn btn-primary" type="submit">Save details</button>
+            <button class="btn btn-danger" name="do" value="delete" formnovalidate data-confirm="Delete this sign-up permanently?">Delete sign-up</button>
+          </div>
+        </form>
+      </div>
     </details>
-  </div>
+  </article>
 <?php endforeach; ?>
 </div>
 <?php page_footer(true);

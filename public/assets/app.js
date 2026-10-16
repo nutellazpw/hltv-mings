@@ -52,4 +52,20 @@
         .finally(function () { btn.disabled = false; });
     });
   });
+
+  // Admin nav: always expanded on desktop, collapsible menu on tablets/phones
+  var nav = document.querySelector('.navwrap');
+  if (nav) {
+    var mq = window.matchMedia('(min-width: 1025px)');
+    var sync = function () { if (mq.matches) nav.setAttribute('open', ''); else nav.removeAttribute('open'); };
+    sync();
+    (mq.addEventListener ? mq.addEventListener('change', sync) : mq.addListener(sync));
+    document.addEventListener('click', function (e) { if (!mq.matches && nav.open && !nav.contains(e.target)) nav.removeAttribute('open'); });
+  }
+
+  // Re-open the accordion item you just saved (activities.php#act-5)
+  if (location.hash) {
+    var target = document.querySelector(location.hash + ' details.acc');
+    if (target) { target.open = true; target.scrollIntoView({ block: 'start' }); window.scrollBy(0, -84); }
+  }
 })();

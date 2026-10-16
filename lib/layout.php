@@ -20,7 +20,7 @@ function page_header(string $title, bool $admin = false): void
 <meta name="theme-color" content="#181818">
 <title><?= e($title) ?> · HLTV Awards Mingle</title>
 <link rel="preload" href="<?= $assets ?>/fonts/orbitron-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="<?= $assets ?>/style.css?v=6">
+<link rel="stylesheet" href="<?= $assets ?>/style.css?v=8">
 <link rel="icon" href="<?= $assets ?>/favicon.png">
 </head>
 <body class="<?= $admin ? 'is-admin' : 'is-public' ?>">
@@ -35,19 +35,21 @@ function page_header(string $title, bool $admin = false): void
       <span>Organised by</span><?= rlg_logo() ?>
     </a>
     <?php endif; ?>
-    <?php if ($u): ?>
-    <nav class="adminnav">
-      <a href="index.php">Sign-ups</a>
-      <a href="activities.php">Activities</a>
-      <a href="groups.php">Groups</a>
-      <a href="checkin.php">Check-in</a>
-      <a href="documents.php">Documents</a>
-      <?php if ($u['role'] === 'admin'): ?>
-      <a href="users.php">Team</a>
-      <a href="settings.php">Settings</a>
-      <?php endif; ?>
-      <a class="muted" href="logout.php">Log out (<?= e($u['name']) ?>)</a>
-    </nav>
+    <?php if ($u):
+      $here = basename($_SERVER['SCRIPT_NAME'] ?? '');
+      $items = $u['role'] === 'admin'
+        ? ['index.php' => 'Sign-ups', 'activities.php' => 'Activities', 'groups.php' => 'Groups', 'checkin.php' => 'Check-in', 'documents.php' => 'Documents', 'users.php' => 'Team', 'settings.php' => 'Settings']
+        : ['checkin.php' => 'Check-in', 'groups.php' => 'Results', 'activities.php' => 'Activity', 'documents.php' => 'Documents'];
+      $current = $items[$here] ?? 'Menu'; ?>
+    <details class="navwrap">
+      <summary class="navtoggle" aria-label="Menu"><span class="navtoggle-label"><?= e($current) ?></span><span class="burger" aria-hidden="true"><i></i><i></i><i></i></span></summary>
+      <nav class="adminnav">
+        <?php foreach ($items as $file => $label): ?>
+          <a href="<?= $file ?>"<?= $file === $here ? ' class="on" aria-current="page"' : '' ?>><?= e($label) ?></a>
+        <?php endforeach; ?>
+        <a class="navuser" href="logout.php"><span><?= e($u['name']) ?></span> Log out</a>
+      </nav>
+    </details>
     <?php endif; ?>
   </div>
 </header>
@@ -70,7 +72,7 @@ function page_footer(bool $admin = false): void
     </a>
   </div>
 </footer>
-<script src="<?= $assets ?>/app.js?v=4"></script>
+<script src="<?= $assets ?>/app.js?v=5"></script>
 </body>
 </html><?php
 }

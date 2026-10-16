@@ -101,7 +101,7 @@ page_header('Groups', true);
         <span><?= (int)$g['n'] ?> people</span>
         <button class="btn" name="do" value="save_group">Save</button>
         <button class="btn" name="do" value="notify" data-confirm="Email members of <?= e($g['name']) ?>?">Email group</button>
-        <button class="btn btn-danger" name="do" value="delete_group" data-confirm="Delete <?= e($g['name']) ?>?">✕</button>
+        <button class="btn btn-danger" name="do" value="delete_group" data-confirm="Delete <?= e($g['name']) ?>?" title="Delete group">Delete</button>
       </div>
     </form>
     <?php endforeach; ?>
@@ -125,7 +125,7 @@ page_header('Groups', true);
   <input type="hidden" name="do" value="save_people">
   <div class="pagehead">
     <h2><?= $admin ? 'Assign people & enter results' : 'Enter results' ?></h2>
-    <button class="btn btn-primary">Save</button>
+    <button class="btn btn-primary hide-mobile">Save</button>
   </div>
   <?php if (!$people): ?><p class="muted">No accepted guests in this activity yet.</p><?php endif; ?>
 
@@ -138,14 +138,14 @@ page_header('Groups', true);
   </div>
   <?php endif; ?>
 
-  <table class="tbl">
-    <thead><tr><th>Name</th><th>Phone</th><th>Group</th><th>Individual result</th><th>In</th></tr></thead>
+  <table class="tbl tbl-cards">
+    <thead><tr><th>Name</th><th>Phone</th><th>Group</th><th>Individual result</th></tr></thead>
     <tbody>
     <?php foreach ($people as $p): ?>
       <tr class="<?= $p['group_id'] ? '' : 'nogroup' ?>">
-        <td><?= e(full_name($p)) ?></td>
-        <td class="small"><?= e($p['phone']) ?></td>
-        <td>
+        <td class="td-name" data-label="Name"><?= e(full_name($p)) ?><?= $p['checked_in'] ? ' <span class="badge badge-in">In</span>' : '' ?></td>
+        <td class="small td-phone" data-label="Phone"><a href="tel:<?= e(preg_replace('/[^0-9+]/', '', $p['phone'])) ?>"><?= e($p['phone']) ?></a></td>
+        <td data-label="Group">
           <?php if ($admin): ?>
           <select name="people[<?= (int)$p['id'] ?>][group]">
             <option value="0">— none —</option>
@@ -156,13 +156,12 @@ page_header('Groups', true);
             echo e($gn);
           endif; ?>
         </td>
-        <td><input name="people[<?= (int)$p['id'] ?>][result]" value="<?= e($p['result']) ?>" placeholder="placement, score, time…"></td>
-        <td><?= $p['checked_in'] ? '✔' : '' ?></td>
+        <td data-label="Result"><input name="people[<?= (int)$p['id'] ?>][result]" value="<?= e($p['result']) ?>" placeholder="placement, score, time…"></td>
       </tr>
     <?php endforeach; ?>
     </tbody>
   </table>
-  <?php if ($people): ?><p><button class="btn btn-primary">Save</button></p><?php endif; ?>
+  <?php if ($people): ?><div class="savebar"><button class="btn btn-primary">Save groups &amp; results</button></div><?php endif; ?>
   <p class="small muted">Results are visible to guests only after a main admin publishes them in Activities.</p>
 </form>
 <?php page_footer(true);

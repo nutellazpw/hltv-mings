@@ -61,39 +61,66 @@ foreach (q('SELECT * FROM hm_user_activity')->fetchAll() as $r) $assign[(int)$r[
 page_header('Team', true);
 ?>
 <div class="pagehead"><h1>Team</h1></div>
-<p class="muted small"><strong>Main admin</strong> — everything: sign-ups, activities, limits, groups, emails, team. <strong>Coordinator</strong> — only the activities ticked below: see guest details, check people in, read documents, enter results. Cannot change activities or accept/decline. Login page: <code><?= e(url('admin/')) ?></code></p>
+<p class="muted small hint"><strong>Main admin</strong> — everything: sign-ups, activities, limits, groups, emails, team. <strong>Coordinator</strong> — only the activities ticked below: see guest details, check people in, read documents, enter results. Cannot change activities or accept/decline. Login page: <code><?= e(url('admin/')) ?></code></p>
 
-<?php foreach ($users as $u): ?>
-<form method="post" class="card grid2">
-  <?= csrf_field() ?>
-  <input type="hidden" name="id" value="<?= (int)$u['id'] ?>">
-  <label class="field"><span>Name · <?= e($u['email']) ?></span><input name="name" value="<?= e($u['name']) ?>"></label>
-  <label class="field"><span>Role</span>
-    <select name="role"><option value="coordinator">Coordinator</option><option value="admin" <?= $u['role'] === 'admin' ? 'selected' : '' ?>>Main admin</option></select></label>
-  <fieldset class="field actchecks"><span>Activities (coordinators)</span>
-    <?php foreach ($acts as $a): ?>
-      <label class="check small"><input type="checkbox" name="acts[]" value="<?= (int)$a['id'] ?>" <?= in_array((int)$a['id'], $assign[(int)$u['id']] ?? [], true) ? 'checked' : '' ?>> <?= e($a['name']) ?></label>
-    <?php endforeach; ?>
-  </fieldset>
-  <label class="field"><span>New password (leave empty to keep)</span><input type="password" name="password" autocomplete="new-password"></label>
-  <div class="inline">
-    <button class="btn btn-primary" name="do" value="update">Save</button>
-    <?php if ((int)$u['id'] !== (int)$me['id']): ?><button class="btn btn-danger" name="do" value="delete" data-confirm="Delete <?= e($u['name']) ?>?">Delete</button><?php endif; ?>
+<?php
+$actNames = [];
+foreach ($acts as $a) $actNames[(int)$a['id']] = $a['name'];
+foreach ($users as $u):
+  $mine = array_map(fn($id) => $actNames[$id] ?? '', $assign[(int)$u['id']] ?? []); ?>
+<div class="card acc-card">
+<details class="acc">
+  <summary class="acc-head">
+    <span class="acc-thumb acc-avatar"><?= e(mb_strtoupper(mb_substr($u['name'], 0, 1))) ?></span>
+    <span class="acc-title"><strong><?= e($u['name']) ?></strong>
+      <span class="acc-meta">
+        <span class="badge <?= $u['role'] === 'admin' ? 'badge-accepted' : 'badge-pending' ?>"><?= $u['role'] === 'admin' ? 'Main admin' : 'Coordinator' ?></span>
+        <span><?= e($u['email']) ?></span>
+        <?php if ($u['role'] !== 'admin'): ?><span class="muted"><?= $mine ? e(implode(', ', $mine)) : 'no activities yet' ?></span><?php endif; ?>
+      </span>
+    </span>
+    <span class="acc-caret" aria-hidden="true"></span>
+  </summary>
+  <div class="acc-body">
+  <form method="post" class="grid2">
+    <?= csrf_field() ?>
+    <input type="hidden" name="id" value="<?= (int)$u['id'] ?>">
+    <label class="field"><span>Name</span><input name="name" value="<?= e($u['name']) ?>"></label>
+    <label class="field"><span>Role</span>
+      <select name="role"><option value="coordinator">Coordinator</option><option value="admin" <?= $u['role'] === 'admin' ? 'selected' : '' ?>>Main admin</option></select></label>
+    <fieldset class="field actchecks span2"><span>Activities (for coordinators)</span>
+      <?php foreach ($acts as $a): ?>
+        <label class="check small"><input type="checkbox" name="acts[]" value="<?= (int)$a['id'] ?>" <?= in_array((int)$a['id'], $assign[(int)$u['id']] ?? [], true) ? 'checked' : '' ?>> <?= e($a['name']) ?></label>
+      <?php endforeach; ?>
+    </fieldset>
+    <label class="field"><span>New password (leave empty to keep)</span><input type="password" name="password" autocomplete="new-password"></label>
+    <div class="form-actions span2">
+      <button class="btn btn-primary" name="do" value="update">Save changes</button>
+      <?php if ((int)$u['id'] !== (int)$me['id']): ?><button class="btn btn-danger" name="do" value="delete" data-confirm="Delete <?= e($u['name']) ?>?">Delete account</button><?php endif; ?>
+    </div>
+  </form>
   </div>
-</form>
+</details>
+</div>
 <?php endforeach; ?>
 
-<form method="post" class="card grid2">
-  <?= csrf_field() ?>
-  <input type="hidden" name="do" value="create">
-  <h2 class="span2">Add team member</h2>
-  <label class="field"><span>Name</span><input name="name" required></label>
-  <label class="field"><span>Email (login)</span><input type="email" name="email" required></label>
-  <label class="field"><span>Password (min. 8)</span><input type="text" name="password" minlength="8" required autocomplete="off"></label>
-  <label class="field"><span>Role</span><select name="role"><option value="coordinator">Coordinator</option><option value="admin">Main admin</option></select></label>
-  <fieldset class="field actchecks span2"><span>Activities</span>
-    <?php foreach ($acts as $a): ?><label class="check small"><input type="checkbox" name="acts[]" value="<?= (int)$a['id'] ?>"> <?= e($a['name']) ?></label><?php endforeach; ?>
-  </fieldset>
-  <div><button class="btn btn-primary">Create account</button></div>
-</form>
+<div class="card acc-card">
+<details class="acc"<?= count($users) <= 1 ? ' open' : '' ?>>
+  <summary class="acc-head"><span class="acc-thumb acc-plus">+</span><span class="acc-title"><strong>Add team member</strong><span class="acc-meta"><span>Main admin or activity coordinator</span></span></span><span class="acc-caret" aria-hidden="true"></span></summary>
+  <div class="acc-body">
+  <form method="post" class="grid2">
+    <?= csrf_field() ?>
+    <input type="hidden" name="do" value="create">
+    <label class="field"><span>Name</span><input name="name" required></label>
+    <label class="field"><span>Email (login)</span><input type="email" name="email" required autocomplete="off"></label>
+    <label class="field"><span>Password (min. 8)</span><input type="text" name="password" minlength="8" required autocomplete="off"></label>
+    <label class="field"><span>Role</span><select name="role"><option value="coordinator">Coordinator</option><option value="admin">Main admin</option></select></label>
+    <fieldset class="field actchecks span2"><span>Activities</span>
+      <?php foreach ($acts as $a): ?><label class="check small"><input type="checkbox" name="acts[]" value="<?= (int)$a['id'] ?>"> <?= e($a['name']) ?></label><?php endforeach; ?>
+    </fieldset>
+    <div class="form-actions span2"><button class="btn btn-primary">Create account</button></div>
+  </form>
+  </div>
+</details>
+</div>
 <?php page_footer(true);

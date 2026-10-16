@@ -34,9 +34,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id = (int)($_POST['id'] ?? 0);
 
     if ($do === 'save') {
-        $name = trim((string)$_POST['name']);
-        $data = [$name, trim((string)$_POST['description']) ?: null, trim((string)$_POST['details']) ?: null,
-                 max(0, (int)$_POST['capacity']), !empty($_POST['is_open']) ? 1 : 0, (int)$_POST['sort_order']];
+        $name = trim((string)($_POST['name'] ?? ''));
+        $data = [$name, trim((string)($_POST['description'] ?? '')) ?: null, trim((string)($_POST['details'] ?? '')) ?: null,
+                 max(0, (int)($_POST['capacity'] ?? 0)), !empty($_POST['is_open']) ? 1 : 0, (int)($_POST['sort_order'] ?? 0)];
         if ($name === '') {
             flash('Name is required.', 'err');
         } elseif ($id) {
@@ -76,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         q('UPDATE hm_activities SET results_published = 0 WHERE id = ?', [$id]);
         flash('Results hidden.');
     }
-    redirect('activities.php');
+    redirect('activities.php' . ($id ? '#act-' . $id : ''));
 }
 
 $allowed = allowed_activity_ids();
@@ -87,12 +87,25 @@ page_header('Activities', true);
 ?>
 <div class="pagehead"><h1>Activities</h1></div>
 <?php if ($admin): ?>
-<p class="muted small">Limit 0 = unlimited. Image: upload a JPG/PNG/WebP (landscape, ~1200×675 works best) or paste an https:// link. "Description" is shown on the sign-up form; "Details for confirmed guests" (time, place, what to bring) goes into the confirmation and group emails and the guest's status page.</p>
+<p class="muted small hint">Tap an activity to edit it. <b>Limit 0</b> = unlimited · <b>Description</b> shows on the sign-up form · <b>Details for confirmed guests</b> (time, place, what to bring) go into emails and the guest's status page · Images: landscape JPG/PNG/WebP, ~1200×675.</p>
 <?php endif; ?>
 
 <?php foreach ($acts as $a): ?>
-<div class="card">
+<div class="card<?= $admin ? ' acc-card' : '' ?>" id="act-<?= (int)$a['id'] ?>">
   <?php if ($admin): ?>
+  <details class="acc"<?= count($acts) === 1 ? ' open' : '' ?>>
+  <summary class="acc-head">
+    <?php if ($src = activity_image($a, true)): ?><img class="acc-thumb" src="<?= e($src) ?>" alt=""><?php else: ?><span class="acc-thumb"></span><?php endif; ?>
+    <span class="acc-title"><strong><?= e($a['name']) ?></strong>
+      <span class="acc-meta">
+        <span class="<?= has_room($a) ? '' : 'full' ?>"><?= e(capacity_label($a)) ?> accepted</span>
+        <?= $a['is_open'] ? '' : '<span class="badge badge-declined">Hidden on form</span>' ?>
+        <?= $a['results_published'] ? '<span class="badge badge-accepted">Results live</span>' : '' ?>
+      </span>
+    </span>
+    <span class="acc-caret" aria-hidden="true"></span>
+  </summary>
+  <div class="acc-body">
   <form method="post" class="grid2" enctype="multipart/form-data">
     <?= csrf_field() ?>
     <input type="hidden" name="id" value="<?= (int)$a['id'] ?>">
@@ -111,9 +124,9 @@ page_header('Activities', true);
         <?php if ($a['image']): ?><label class="check small"><input type="checkbox" name="image_remove" value="1"> Remove image</label><?php endif; ?>
       </div>
     </div>
-    <div class="inline">
+    <div class="form-actions span2">
       <label class="check"><input type="checkbox" name="is_open" value="1" <?= $a['is_open'] ? 'checked' : '' ?>> Visible on sign-up form</label>
-      <button class="btn btn-primary" name="do" value="save">Save</button>
+      <button class="btn btn-primary" name="do" value="save">Save changes</button>
       <button class="btn btn-danger" name="do" value="delete" data-confirm="Delete <?= e($a['name']) ?>?">Delete</button>
     </div>
   </form>
@@ -129,6 +142,8 @@ page_header('Activities', true);
     <?php endif; ?>
     <a class="small" href="groups.php?a=<?= (int)$a['id'] ?>">Groups & results →</a>
   </form>
+  </div>
+  </details>
   <?php else: ?>
     <?php if ($src = activity_image($a, true)): ?><img class="imgprev" src="<?= e($src) ?>" alt="" style="margin-bottom:14px"><?php endif; ?>
     <h2><?= e($a['name']) ?> <small><?= e(capacity_label($a)) ?></small></h2>
@@ -139,8 +154,10 @@ page_header('Activities', true);
 <?php endforeach; ?>
 
 <?php if ($admin): ?>
-<div class="card">
-  <h2>Add activity</h2>
+<div class="card acc-card">
+  <details class="acc">
+  <summary class="acc-head"><span class="acc-thumb acc-plus">+</span><span class="acc-title"><strong>Add activity</strong></span><span class="acc-caret" aria-hidden="true"></span></summary>
+  <div class="acc-body">
   <form method="post" class="grid2" enctype="multipart/form-data">
     <?= csrf_field() ?>
     <input type="hidden" name="do" value="save">
@@ -155,6 +172,8 @@ page_header('Activities', true);
     <label class="field"><span>…or image link (https://)</span><input name="image_url" placeholder="https://"></label>
     <div class="inline"><label class="check"><input type="checkbox" name="is_open" value="1" checked> Visible on sign-up form</label><button class="btn btn-primary">Add</button></div>
   </form>
+  </div>
+  </details>
 </div>
 <?php endif;
 page_footer(true);
