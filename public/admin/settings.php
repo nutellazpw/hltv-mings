@@ -11,10 +11,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         set_setting('intro_text', trim((string)$_POST['intro_text']));
         flash('Settings saved.');
     } elseif ($do === 'test_mail') {
-        $ok = send_mail($me['email'], 'Test email from HLTV Awards Mingle', [
+        $to = trim((string)($_POST['to'] ?? '')) ?: $me['email'];
+        if (!filter_var($to, FILTER_VALIDATE_EMAIL)) { flash('Enter a valid email address for the test.', 'err'); redirect('settings.php'); }
+        $ok = send_mail($to, 'Test email from HLTV Awards Mingle', [
             'Hi ' . e($me['name']) . ',', 'If you can read this, SMTP is configured correctly.',
         ], ['Open the site', url('')]);
-        flash($ok ? 'Test email sent to ' . $me['email'] . '.' : 'Test email FAILED — see the mail log below.', $ok ? 'ok' : 'err');
+        flash($ok ? 'Test email handed to the mail server for ' . $to . '. If it does not arrive within a few minutes, check spam and cPanel → Track Delivery.' : 'Test email FAILED — see the mail log below.', $ok ? 'ok' : 'err');
     }
     redirect('settings.php');
 }
@@ -38,7 +40,7 @@ page_header('Settings', true);
 <div class="card">
   <div class="pagehead">
     <h2>Mail log <small>last 50 · <?= $failed ?> failed total</small></h2>
-    <form method="post"><?= csrf_field() ?><button class="btn" name="do" value="test_mail">Send test email to me</button></form>
+    <form method="post" class="inline"><?= csrf_field() ?><input type="email" name="to" value="<?= e($me['email']) ?>" aria-label="Send test to" style="min-width:240px"><button class="btn" name="do" value="test_mail">Send test email</button></form>
   </div>
   <p class="small muted">Sending from <code><?= e(cfg('smtp.from')) ?></code> via <code><?= e(cfg('smtp.host')) ?>:<?= (int)cfg('smtp.port') ?></code> (<?= e(cfg('smtp.secure')) ?>), login <code><?= e(cfg('smtp.user')) ?></code>.</p>
   <?php if (cfg('mail_dry_run')): ?><p class="err">Dry-run mode is ON in config.php — emails are only written to storage/mail.log.</p><?php endif; ?>
