@@ -22,9 +22,9 @@ page_header('Results');
     <?php endforeach; ?>
   </nav>
   <?php if ($act):
-    $groups = q('SELECT * FROM groups_ WHERE activity_id = ? ORDER BY name', [$act['id']])->fetchAll();
+    $groups = q('SELECT * FROM hm_groups WHERE activity_id = ? ORDER BY name', [$act['id']])->fetchAll();
     foreach ($groups as $g):
-      $people = q('SELECT first_name, last_name, result FROM signups WHERE group_id = ? AND status = \'accepted\' ORDER BY first_name', [$g['id']])->fetchAll(); ?>
+      $people = q('SELECT first_name, last_name, result FROM hm_signups WHERE group_id = ? AND status = \'accepted\' ORDER BY first_name', [$g['id']])->fetchAll(); ?>
     <div class="card">
       <h2><?= e($g['name']) ?></h2>
       <?php if ($g['result']): ?><div class="result-box"><span>Result</span><strong><?= nl2br(e($g['result'])) ?></strong></div><?php endif; ?>

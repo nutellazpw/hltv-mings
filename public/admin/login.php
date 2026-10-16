@@ -2,7 +2,7 @@
 declare(strict_types=1);
 require __DIR__ . '/../../lib/bootstrap.php';
 
-if ((int)q('SELECT COUNT(*) FROM users')->fetchColumn() === 0) redirect('setup.php');
+if ((int)q('SELECT COUNT(*) FROM hm_users')->fetchColumn() === 0) redirect('setup.php');
 if (current_user()) redirect('index.php');
 
 $err = '';
@@ -10,7 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
     $_SESSION['login_tries'] = ($_SESSION['login_tries'] ?? 0) + 1;
     if ($_SESSION['login_tries'] > 5) sleep(min(10, $_SESSION['login_tries'] - 5));
-    $u = q('SELECT * FROM users WHERE email = ?', [mb_strtolower(trim((string)($_POST['email'] ?? '')))])->fetch();
+    $u = q('SELECT * FROM hm_users WHERE email = ?', [mb_strtolower(trim((string)($_POST['email'] ?? '')))])->fetch();
     if ($u && password_verify((string)($_POST['password'] ?? ''), $u['pass_hash'])) {
         session_regenerate_id(true);
         $_SESSION['uid'] = (int)$u['id'];

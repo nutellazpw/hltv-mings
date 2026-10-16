@@ -8,7 +8,7 @@ $allowedExt = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'csv', 'ppt', 'pptx', 'txt',
 
 /* ---------- Download ---------- */
 if (isset($_GET['dl'])) {
-    $d = q('SELECT * FROM documents WHERE id = ?', [(int)$_GET['dl']])->fetch();
+    $d = q('SELECT * FROM hm_documents WHERE id = ?', [(int)$_GET['dl']])->fetch();
     if (!$d || !can_access_activity((int)$d['activity_id'])) { http_response_code(404); exit('Not found.'); }
     $path = $dir . '/' . $d['stored_name'];
     if (!is_file($path)) { http_response_code(404); exit('File missing.'); }
@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!is_dir($dir)) mkdir($dir, 0750, true);
             $stored = bin2hex(random_bytes(16)) . '.' . $ext;
             if (move_uploaded_file($f['tmp_name'], $dir . '/' . $stored)) {
-                q('INSERT INTO documents (activity_id, original_name, stored_name, uploaded_by) VALUES (?, ?, ?, ?)',
+                q('INSERT INTO hm_documents (activity_id, original_name, stored_name, uploaded_by) VALUES (?, ?, ?, ?)',
                   [$aid, mb_substr(basename((string)$f['name']), 0, 255), $stored, $me['id']]);
                 flash('Uploaded.');
             } else {
@@ -50,10 +50,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     } elseif ($do === 'delete') {
-        $d = q('SELECT * FROM documents WHERE id = ?', [(int)$_POST['id']])->fetch();
+        $d = q('SELECT * FROM hm_documents WHERE id = ?', [(int)$_POST['id']])->fetch();
         if ($d) {
             @unlink($dir . '/' . $d['stored_name']);
-            q('DELETE FROM documents WHERE id = ?', [$d['id']]);
+            q('DELETE FROM hm_documents WHERE id = ?', [$d['id']]);
             flash('Deleted.');
         }
     }
@@ -83,7 +83,7 @@ page_header('Documents', true);
 
 <?php if (!$acts): ?><div class="card"><p class="muted">You are not assigned to any activity yet.</p></div><?php endif; ?>
 <?php foreach ($acts as $a):
-  $docs = q('SELECT * FROM documents WHERE activity_id = ? ORDER BY created_at DESC', [$a['id']])->fetchAll(); ?>
+  $docs = q('SELECT * FROM hm_documents WHERE activity_id = ? ORDER BY created_at DESC', [$a['id']])->fetchAll(); ?>
 <div class="card">
   <h2><?= e($a['name']) ?> <small><?= count($docs) ?> files</small></h2>
   <?php if (!$docs): ?><p class="muted small">No documents yet.</p><?php endif; ?>

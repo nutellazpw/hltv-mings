@@ -3,7 +3,7 @@ declare(strict_types=1);
 require __DIR__ . '/../../lib/bootstrap.php';
 
 // One-time setup: only works while there are no users at all.
-if ((int)q('SELECT COUNT(*) FROM users')->fetchColumn() > 0) redirect('login.php');
+if ((int)q('SELECT COUNT(*) FROM hm_users')->fetchColumn() > 0) redirect('login.php');
 
 $err = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -14,7 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($pass) < 10) {
         $err = 'Name, valid email and a password of at least 10 characters are required.';
     } else {
-        q('INSERT INTO users (name, email, pass_hash, role) VALUES (?, ?, ?, \'admin\')', [$name, $email, password_hash($pass, PASSWORD_DEFAULT)]);
+        q('INSERT INTO hm_users (name, email, pass_hash, role) VALUES (?, ?, ?, \'admin\')', [$name, $email, password_hash($pass, PASSWORD_DEFAULT)]);
         session_regenerate_id(true);
         $_SESSION['uid'] = (int)db()->lastInsertId();
         flash('Main admin created. Welcome!');

@@ -13,7 +13,7 @@ Plain PHP 8 + MySQL, no build step, runs on cPanel shared hosting.
 
 ## Install (cPanel)
 1. **Subdomain** `hltv.relog.gg` — set the document root to `<folder>/public` (preferred). If the document root has to stay the repo root, the root `.htaccess` rewrites into `public/` and blocks `lib/`, `storage/` and `config.php`.
-2. **MySQL**: create a database and user (MySQL Databases), then import `install.sql` in phpMyAdmin. It already contains the 6 activities.
+2. **MySQL**: import `install.sql` in phpMyAdmin (it already contains the 6 activities). All tables are prefixed `hm_`, so an existing database can be reused without clashing with other apps.
 3. **Email account** `hltv-mingle@relog.gg` (Email Accounts). The SMTP host/port are under *Connect Devices*.
 4. Copy `config.sample.php` → `config.php` and fill in base URL, DB and SMTP.
 5. Make `storage/` and `storage/docs/` writable by PHP (755 is normally enough on cPanel).

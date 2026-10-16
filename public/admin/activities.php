@@ -16,33 +16,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($name === '') {
             flash('Name is required.', 'err');
         } elseif ($id) {
-            q('UPDATE activities SET name=?, description=?, details=?, capacity=?, is_open=?, sort_order=? WHERE id=?', [...$data, $id]);
+            q('UPDATE hm_activities SET name=?, description=?, details=?, capacity=?, is_open=?, sort_order=? WHERE id=?', [...$data, $id]);
             $a = activity($id);
             flash('Saved ' . $name . '.' . ((int)$a['capacity'] > 0 && (int)$a['accepted_count'] > (int)$a['capacity'] ? ' Note: more people are already accepted than the new limit.' : ''));
         } else {
-            q('INSERT INTO activities (name, description, details, capacity, is_open, sort_order) VALUES (?,?,?,?,?,?)', $data);
+            q('INSERT INTO hm_activities (name, description, details, capacity, is_open, sort_order) VALUES (?,?,?,?,?,?)', $data);
             flash('Added ' . $name . '.');
         }
     } elseif ($do === 'delete' && $id) {
-        $n = (int)q('SELECT COUNT(*) FROM signups WHERE activity_id = ? AND status = \'accepted\'', [$id])->fetchColumn();
+        $n = (int)q('SELECT COUNT(*) FROM hm_signups WHERE activity_id = ? AND status = \'accepted\'', [$id])->fetchColumn();
         if ($n > 0) {
             flash('Cannot delete: ' . $n . ' accepted guests are in this activity. Move or decline them first, or just close sign-ups for it.', 'err');
         } else {
-            q('DELETE FROM activities WHERE id = ?', [$id]);
+            q('DELETE FROM hm_activities WHERE id = ?', [$id]);
             flash('Activity deleted.');
         }
     } elseif ($do === 'publish' && $id) {
-        q('UPDATE activities SET results_published = 1 WHERE id = ?', [$id]);
+        q('UPDATE hm_activities SET results_published = 1 WHERE id = ?', [$id]);
         $sent = 0; $failed = 0;
         if (!empty($_POST['notify'])) {
             @set_time_limit(300);
-            foreach (q('SELECT * FROM signups WHERE activity_id = ? AND status = \'accepted\'', [$id])->fetchAll() as $s) {
+            foreach (q('SELECT * FROM hm_signups WHERE activity_id = ? AND status = \'accepted\'', [$id])->fetchAll() as $s) {
                 mail_results($s) ? $sent++ : $failed++;
             }
         }
         flash('Results published.' . ($sent + $failed ? " Emails sent: $sent" . ($failed ? ", failed: $failed" : '') . '.' : ''), $failed ? 'err' : 'ok');
     } elseif ($do === 'unpublish' && $id) {
-        q('UPDATE activities SET results_published = 0 WHERE id = ?', [$id]);
+        q('UPDATE hm_activities SET results_published = 0 WHERE id = ?', [$id]);
         flash('Results hidden.');
     }
     redirect('activities.php');

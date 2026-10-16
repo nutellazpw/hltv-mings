@@ -15,51 +15,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $act) {
     $do = (string)($_POST['do'] ?? '');
     $gid = (int)($_POST['group_id'] ?? 0);
     // Make sure a posted group belongs to this activity.
-    if ($gid && !q('SELECT 1 FROM groups_ WHERE id = ? AND activity_id = ?', [$gid, $aid])->fetchColumn()) {
+    if ($gid && !q('SELECT 1 FROM hm_groups WHERE id = ? AND activity_id = ?', [$gid, $aid])->fetchColumn()) {
         http_response_code(400); exit('Bad group.');
     }
 
     if ($do === 'add_group' && $admin) {
         $name = trim((string)$_POST['name']);
         if ($name !== '') {
-            q('INSERT INTO groups_ (activity_id, name, info) VALUES (?, ?, ?)', [$aid, $name, trim((string)$_POST['info']) ?: null]);
+            q('INSERT INTO hm_groups (activity_id, name, info) VALUES (?, ?, ?)', [$aid, $name, trim((string)$_POST['info']) ?: null]);
             flash('Group ' . $name . ' added.');
         }
     } elseif ($do === 'auto_groups' && $admin) {
         $n = max(1, min(50, (int)$_POST['count']));
-        $existing = (int)q('SELECT COUNT(*) FROM groups_ WHERE activity_id = ?', [$aid])->fetchColumn();
+        $existing = (int)q('SELECT COUNT(*) FROM hm_groups WHERE activity_id = ?', [$aid])->fetchColumn();
         for ($i = 1; $i <= $n; $i++) {
-            q('INSERT INTO groups_ (activity_id, name) VALUES (?, ?)', [$aid, 'Group ' . ($existing + $i)]);
+            q('INSERT INTO hm_groups (activity_id, name) VALUES (?, ?)', [$aid, 'Group ' . ($existing + $i)]);
         }
         flash("$n groups added.");
     } elseif ($do === 'save_group' && $admin && $gid) {
-        q('UPDATE groups_ SET name = ?, info = ? WHERE id = ?', [trim((string)$_POST['name']), trim((string)$_POST['info']) ?: null, $gid]);
+        q('UPDATE hm_groups SET name = ?, info = ? WHERE id = ?', [trim((string)$_POST['name']), trim((string)$_POST['info']) ?: null, $gid]);
         flash('Group saved.');
     } elseif ($do === 'delete_group' && $admin && $gid) {
-        q('UPDATE signups SET group_id = NULL WHERE group_id = ?', [$gid]);
-        q('DELETE FROM groups_ WHERE id = ?', [$gid]);
+        q('UPDATE hm_signups SET group_id = NULL WHERE group_id = ?', [$gid]);
+        q('DELETE FROM hm_groups WHERE id = ?', [$gid]);
         flash('Group deleted; its members are now unassigned.');
     } elseif ($do === 'save_people') {
-        $validGroups = array_map('intval', q('SELECT id FROM groups_ WHERE activity_id = ?', [$aid])->fetchAll(PDO::FETCH_COLUMN));
+        $validGroups = array_map('intval', q('SELECT id FROM hm_groups WHERE activity_id = ?', [$aid])->fetchAll(PDO::FETCH_COLUMN));
         foreach ((array)($_POST['people'] ?? []) as $sid => $row) {
             $sid = (int)$sid;
-            if (!q('SELECT 1 FROM signups WHERE id = ? AND activity_id = ? AND status = \'accepted\'', [$sid, $aid])->fetchColumn()) continue;
+            if (!q('SELECT 1 FROM hm_signups WHERE id = ? AND activity_id = ? AND status = \'accepted\'', [$sid, $aid])->fetchColumn()) continue;
             $result = trim((string)($row['result'] ?? '')) ?: null;
             if ($admin) {
                 $g = (int)($row['group'] ?? 0);
                 $g = in_array($g, $validGroups, true) ? $g : null;
-                q('UPDATE signups SET group_id = ?, result = ? WHERE id = ?', [$g, $result, $sid]);
+                q('UPDATE hm_signups SET group_id = ?, result = ? WHERE id = ?', [$g, $result, $sid]);
             } else {
-                q('UPDATE signups SET result = ? WHERE id = ?', [$result, $sid]);
+                q('UPDATE hm_signups SET result = ? WHERE id = ?', [$result, $sid]);
             }
         }
         foreach ((array)($_POST['group_result'] ?? []) as $g => $res) {
-            if (in_array((int)$g, $validGroups, true)) q('UPDATE groups_ SET result = ? WHERE id = ?', [trim((string)$res) ?: null, (int)$g]);
+            if (in_array((int)$g, $validGroups, true)) q('UPDATE hm_groups SET result = ? WHERE id = ?', [trim((string)$res) ?: null, (int)$g]);
         }
         flash('Saved.');
     } elseif ($do === 'notify' && $admin) {
         @set_time_limit(300);
-        $sql = 'SELECT * FROM signups WHERE activity_id = ? AND status = \'accepted\' AND group_id IS NOT NULL';
+        $sql = 'SELECT * FROM hm_signups WHERE activity_id = ? AND status = \'accepted\' AND group_id IS NOT NULL';
         $params = [$aid];
         if ($gid) { $sql .= ' AND group_id = ?'; $params[] = $gid; }
         $sent = 0; $failed = 0;
@@ -69,8 +69,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $act) {
     redirect('groups.php?a=' . $aid);
 }
 
-$groups = $act ? q('SELECT g.*, (SELECT COUNT(*) FROM signups s WHERE s.group_id = g.id AND s.status=\'accepted\') AS n FROM groups_ g WHERE g.activity_id = ? ORDER BY g.id', [$aid])->fetchAll() : [];
-$people = $act ? q('SELECT * FROM signups WHERE activity_id = ? AND status = \'accepted\' ORDER BY group_id IS NULL DESC, group_id, first_name', [$aid])->fetchAll() : [];
+$groups = $act ? q('SELECT g.*, (SELECT COUNT(*) FROM hm_signups s WHERE s.group_id = g.id AND s.status=\'accepted\') AS n FROM hm_groups g WHERE g.activity_id = ? ORDER BY g.id', [$aid])->fetchAll() : [];
+$people = $act ? q('SELECT * FROM hm_signups WHERE activity_id = ? AND status = \'accepted\' ORDER BY group_id IS NULL DESC, group_id, first_name', [$aid])->fetchAll() : [];
 $unassigned = count(array_filter($people, fn($p) => !$p['group_id']));
 
 page_header('Groups', true);

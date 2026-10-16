@@ -6,9 +6,9 @@ $acts = activities();
 
 function save_assignments(int $uid, array $ids): void
 {
-    q('DELETE FROM user_activity WHERE user_id = ?', [$uid]);
+    q('DELETE FROM hm_user_activity WHERE user_id = ?', [$uid]);
     foreach (array_unique(array_map('intval', $ids)) as $aid) {
-        if (activity($aid)) q('INSERT INTO user_activity (user_id, activity_id) VALUES (?, ?)', [$uid, $aid]);
+        if (activity($aid)) q('INSERT INTO hm_user_activity (user_id, activity_id) VALUES (?, ?)', [$uid, $aid]);
     }
 }
 
@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $do = (string)($_POST['do'] ?? '');
     $uid = (int)($_POST['id'] ?? 0);
     $role = ($_POST['role'] ?? '') === 'admin' ? 'admin' : 'coordinator';
-    $adminCount = (int)q('SELECT COUNT(*) FROM users WHERE role = \'admin\'')->fetchColumn();
+    $adminCount = (int)q('SELECT COUNT(*) FROM hm_users WHERE role = \'admin\'')->fetchColumn();
 
     if ($do === 'create') {
         $name = trim((string)$_POST['name']);
@@ -27,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             flash('Name, valid email and a password of at least 8 characters are required.', 'err');
         } else {
             try {
-                q('INSERT INTO users (name, email, pass_hash, role) VALUES (?, ?, ?, ?)', [$name, $email, password_hash($pass, PASSWORD_DEFAULT), $role]);
+                q('INSERT INTO hm_users (name, email, pass_hash, role) VALUES (?, ?, ?, ?)', [$name, $email, password_hash($pass, PASSWORD_DEFAULT), $role]);
                 save_assignments((int)db()->lastInsertId(), (array)($_POST['acts'] ?? []));
                 flash("Account for $name created. Send them the login link and password.");
             } catch (PDOException $ex) {
@@ -35,28 +35,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     } elseif ($do === 'update' && $uid) {
-        $u = q('SELECT * FROM users WHERE id = ?', [$uid])->fetch();
+        $u = q('SELECT * FROM hm_users WHERE id = ?', [$uid])->fetch();
         if ($u && $u['role'] === 'admin' && $role !== 'admin' && $adminCount <= 1) {
             flash('There must be at least one main admin.', 'err');
         } elseif ($u) {
-            q('UPDATE users SET name = ?, role = ? WHERE id = ?', [trim((string)$_POST['name']) ?: $u['name'], $role, $uid]);
+            q('UPDATE hm_users SET name = ?, role = ? WHERE id = ?', [trim((string)$_POST['name']) ?: $u['name'], $role, $uid]);
             save_assignments($uid, (array)($_POST['acts'] ?? []));
             if (($p = (string)($_POST['password'] ?? '')) !== '') {
                 if (strlen($p) < 8) flash('Password not changed: at least 8 characters.', 'err');
-                else q('UPDATE users SET pass_hash = ? WHERE id = ?', [password_hash($p, PASSWORD_DEFAULT), $uid]);
+                else q('UPDATE hm_users SET pass_hash = ? WHERE id = ?', [password_hash($p, PASSWORD_DEFAULT), $uid]);
             }
             flash('Saved ' . $u['name'] . '.');
         }
     } elseif ($do === 'delete' && $uid) {
         if ($uid === (int)$me['id']) flash('You cannot delete your own account.', 'err');
-        else { q('DELETE FROM users WHERE id = ?', [$uid]); flash('Account deleted.'); }
+        else { q('DELETE FROM hm_users WHERE id = ?', [$uid]); flash('Account deleted.'); }
     }
     redirect('users.php');
 }
 
-$users = q('SELECT * FROM users ORDER BY role, name')->fetchAll();
+$users = q('SELECT * FROM hm_users ORDER BY role, name')->fetchAll();
 $assign = [];
-foreach (q('SELECT * FROM user_activity')->fetchAll() as $r) $assign[(int)$r['user_id']][] = (int)$r['activity_id'];
+foreach (q('SELECT * FROM hm_user_activity')->fetchAll() as $r) $assign[(int)$r['user_id']][] = (int)$r['activity_id'];
 
 page_header('Team', true);
 ?>

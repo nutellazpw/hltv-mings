@@ -47,7 +47,7 @@ function send_mail(string $to, string $subject, array $paragraphs, ?array $butto
     }
 
     try {
-        q('INSERT INTO mail_log (to_email, subject, ok, error) VALUES (?, ?, ?, ?)', [$to, $subject, $ok ? 1 : 0, $err]);
+        q('INSERT INTO hm_mail_log (to_email, subject, ok, error) VALUES (?, ?, ?, ?)', [$to, $subject, $ok ? 1 : 0, $err]);
     } catch (Throwable $ignored) {}
 
     return $ok;
@@ -122,7 +122,7 @@ function mail_declined(array $s): bool
 function mail_group(array $s): bool
 {
     $a = activity((int)$s['activity_id']);
-    $g = $s['group_id'] ? q('SELECT * FROM groups_ WHERE id = ?', [$s['group_id']])->fetch() : null;
+    $g = $s['group_id'] ? q('SELECT * FROM hm_groups WHERE id = ?', [$s['group_id']])->fetch() : null;
     $p = ['Hi ' . e($s['first_name']) . ',',
         'Your group for <strong>' . e($a['name'] ?? '') . '</strong> is ready: <strong>' . e($g['name'] ?? '') . '</strong>.'];
     if (!empty($g['info'])) $p[] = nl2br(e($g['info']));

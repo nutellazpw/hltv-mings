@@ -19,8 +19,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     redirect('settings.php');
 }
 
-$log = q('SELECT * FROM mail_log ORDER BY id DESC LIMIT 50')->fetchAll();
-$failed = (int)q('SELECT COUNT(*) FROM mail_log WHERE ok = 0')->fetchColumn();
+$log = q('SELECT * FROM hm_mail_log ORDER BY id DESC LIMIT 50')->fetchAll();
+$failed = (int)q('SELECT COUNT(*) FROM hm_mail_log WHERE ok = 0')->fetchColumn();
 
 page_header('Settings', true);
 ?>

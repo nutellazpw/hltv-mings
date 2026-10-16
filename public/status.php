@@ -3,7 +3,7 @@ declare(strict_types=1);
 require __DIR__ . '/../lib/bootstrap.php';
 
 $t = (string)($_GET['t'] ?? '');
-$s = preg_match('/^[a-f0-9]{40}$/', $t) ? q('SELECT * FROM signups WHERE token = ?', [$t])->fetch() : null;
+$s = preg_match('/^[a-f0-9]{40}$/', $t) ? q('SELECT * FROM hm_signups WHERE token = ?', [$t])->fetch() : null;
 
 if (!$s) {
     http_response_code(404);
@@ -16,8 +16,8 @@ if (!$s) {
 $prim = $s['primary_activity_id'] ? activity((int)$s['primary_activity_id']) : null;
 $sec  = $s['secondary_activity_id'] ? activity((int)$s['secondary_activity_id']) : null;
 $act  = $s['activity_id'] ? activity((int)$s['activity_id']) : null;
-$grp  = $s['group_id'] ? q('SELECT * FROM groups_ WHERE id = ?', [$s['group_id']])->fetch() : null;
-$mates = $grp ? q('SELECT first_name, last_name, result FROM signups WHERE group_id = ? AND status = \'accepted\' ORDER BY first_name', [$grp['id']])->fetchAll() : [];
+$grp  = $s['group_id'] ? q('SELECT * FROM hm_groups WHERE id = ?', [$s['group_id']])->fetch() : null;
+$mates = $grp ? q('SELECT first_name, last_name, result FROM hm_signups WHERE group_id = ? AND status = \'accepted\' ORDER BY first_name', [$grp['id']])->fetchAll() : [];
 $resultsLive = $act && (int)$act['results_published'] === 1;
 
 page_header('My status');

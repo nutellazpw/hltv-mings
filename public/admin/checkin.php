@@ -11,14 +11,14 @@ if ($aid) require_activity($aid);
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
     $sid = (int)($_POST['id'] ?? 0);
-    $s = q('SELECT * FROM signups WHERE id = ? AND status = \'accepted\'', [$sid])->fetch();
+    $s = q('SELECT * FROM hm_signups WHERE id = ? AND status = \'accepted\'', [$sid])->fetch();
     $ajax = ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'fetch';
     if (!$s || !can_access_activity((int)$s['activity_id'])) {
         if ($ajax) { http_response_code(403); echo json_encode(['ok' => false]); exit; }
         http_response_code(403); exit('No access.');
     }
     $in = !empty($_POST['in']) ? 1 : 0;
-    q('UPDATE signups SET checked_in = ?, checked_in_at = ?, checked_in_by = ? WHERE id = ?',
+    q('UPDATE hm_signups SET checked_in = ?, checked_in_at = ?, checked_in_by = ? WHERE id = ?',
       [$in, $in ? date('Y-m-d H:i:s') : null, $in ? $me['id'] : null, $sid]);
     if ($ajax) {
         header('Content-Type: application/json');
@@ -29,8 +29,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $act = $aid ? activity($aid) : null;
-$groups = $act ? q('SELECT * FROM groups_ WHERE activity_id = ? ORDER BY id', [$aid])->fetchAll() : [];
-$people = $act ? q('SELECT * FROM signups WHERE activity_id = ? AND status = \'accepted\' ORDER BY first_name, last_name', [$aid])->fetchAll() : [];
+$groups = $act ? q('SELECT * FROM hm_groups WHERE activity_id = ? ORDER BY id', [$aid])->fetchAll() : [];
+$people = $act ? q('SELECT * FROM hm_signups WHERE activity_id = ? AND status = \'accepted\' ORDER BY first_name, last_name', [$aid])->fetchAll() : [];
 $byGroup = [];
 foreach ($people as $p) $byGroup[(int)$p['group_id']][] = $p;
 $inCount = count(array_filter($people, fn($p) => $p['checked_in']));

@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $open) {
 
         if (!$errors) {
             $email = mb_strtolower($old['email']);
-            $existing = q('SELECT * FROM signups WHERE email = ?', [$email])->fetch();
+            $existing = q('SELECT * FROM hm_signups WHERE email = ?', [$email])->fetch();
             if ($existing) {
                 // Don't reveal anything on screen; re-send the status link to the address owner.
                 send_mail($existing['email'], 'Your HLTV Awards Mingle sign-up', [
@@ -39,12 +39,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $open) {
                 $done = true;
             } else {
                 $token = bin2hex(random_bytes(20));
-                q('INSERT INTO signups (first_name, last_name, email, phone, primary_activity_id, secondary_activity_id, token)
+                q('INSERT INTO hm_signups (first_name, last_name, email, phone, primary_activity_id, secondary_activity_id, token)
                    VALUES (?, ?, ?, ?, ?, ?, ?)', [
                     $old['first_name'], $old['last_name'], $email, $old['phone'],
                     (int)$old['primary'], $old['secondary'] === '' ? null : (int)$old['secondary'], $token,
                 ]);
-                $s = q('SELECT * FROM signups WHERE id = ?', [db()->lastInsertId()])->fetch();
+                $s = q('SELECT * FROM hm_signups WHERE id = ?', [db()->lastInsertId()])->fetch();
                 mail_signup_received($s);
                 $done = true;
             }

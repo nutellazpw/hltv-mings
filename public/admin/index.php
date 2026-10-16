@@ -14,7 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id = (int)($_POST['id'] ?? 0);
     $do = (string)($_POST['do'] ?? '');
     $notify = !empty($_POST['notify']);
-    $s = q('SELECT * FROM signups WHERE id = ?', [$id])->fetch();
+    $s = q('SELECT * FROM hm_signups WHERE id = ?', [$id])->fetch();
 
     if ($s) {
         if ($do === 'accept_primary' || $do === 'accept_secondary' || $do === 'accept_other') {
@@ -31,17 +31,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 flash($a['name'] . ' is full (' . capacity_label($a) . '). Raise the limit in Activities or pick another option.', 'err');
             } else {
                 $keepGroup = $alreadyThere ? $s['group_id'] : null;
-                q('UPDATE signups SET status = \'accepted\', activity_id = ?, group_id = ? WHERE id = ?', [$aid, $keepGroup, $id]);
-                $s = q('SELECT * FROM signups WHERE id = ?', [$id])->fetch();
+                q('UPDATE hm_signups SET status = \'accepted\', activity_id = ?, group_id = ? WHERE id = ?', [$aid, $keepGroup, $id]);
+                $s = q('SELECT * FROM hm_signups WHERE id = ?', [$id])->fetch();
                 $sent = $notify ? mail_accepted($s) : null;
                 flash(full_name($s) . ' accepted for ' . $a['name'] . ($notify ? ($sent ? ' — email sent.' : ' — EMAIL FAILED, check Settings → Mail log.') : '.'), $sent === false ? 'err' : 'ok');
             }
         } elseif ($do === 'decline') {
-            q('UPDATE signups SET status = \'declined\', activity_id = NULL, group_id = NULL, checked_in = 0 WHERE id = ?', [$id]);
+            q('UPDATE hm_signups SET status = \'declined\', activity_id = NULL, group_id = NULL, checked_in = 0 WHERE id = ?', [$id]);
             $sent = $notify ? mail_declined($s) : null;
             flash(full_name($s) . ' declined' . ($notify ? ($sent ? ' — email sent.' : ' — EMAIL FAILED.') : '.'), $sent === false ? 'err' : 'ok');
         } elseif ($do === 'reset') {
-            q('UPDATE signups SET status = \'pending\', activity_id = NULL, group_id = NULL, checked_in = 0 WHERE id = ?', [$id]);
+            q('UPDATE hm_signups SET status = \'pending\', activity_id = NULL, group_id = NULL, checked_in = 0 WHERE id = ?', [$id]);
             flash(full_name($s) . ' moved back to pending (no email sent).');
         } elseif ($do === 'resend') {
             $ok = match ($s['status']) {
@@ -58,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 flash('Name and a valid email are required.', 'err');
             } else {
                 try {
-                    q('UPDATE signups SET first_name=?, last_name=?, email=?, phone=?, primary_activity_id=?, secondary_activity_id=? WHERE id=?',
+                    q('UPDATE hm_signups SET first_name=?, last_name=?, email=?, phone=?, primary_activity_id=?, secondary_activity_id=? WHERE id=?',
                       [$fn, $ln, $em, $ph, $p1, $p2, $id]);
                     flash('Saved.');
                 } catch (PDOException $ex) {
@@ -66,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
         } elseif ($do === 'delete') {
-            q('DELETE FROM signups WHERE id = ?', [$id]);
+            q('DELETE FROM hm_signups WHERE id = ?', [$id]);
             flash(full_name($s) . ' deleted.');
         }
     }
@@ -80,7 +80,7 @@ if (isset($_GET['export'])) {
     $out = fopen('php://output', 'w');
     fwrite($out, "\xEF\xBB\xBF");
     fputcsv($out, ['First name', 'Last name', 'Email', 'Phone', '1st choice', '2nd choice', 'Status', 'Assigned activity', 'Group', 'Checked in', 'Result', 'Signed up']);
-    $rows = q('SELECT s.*, g.name AS group_name FROM signups s LEFT JOIN groups_ g ON g.id = s.group_id ORDER BY s.created_at')->fetchAll();
+    $rows = q('SELECT s.*, g.name AS group_name FROM hm_signups s LEFT JOIN hm_groups g ON g.id = s.group_id ORDER BY s.created_at')->fetchAll();
     foreach ($rows as $r) {
         fputcsv($out, [$r['first_name'], $r['last_name'], $r['email'], $r['phone'],
             $byId[(int)$r['primary_activity_id']]['name'] ?? '', $byId[(int)$r['secondary_activity_id']]['name'] ?? '',
@@ -99,11 +99,11 @@ $where = []; $params = [];
 if (in_array($fStatus, ['pending', 'accepted', 'declined'], true)) { $where[] = 's.status = ?'; $params[] = $fStatus; }
 if ($fAct) { $where[] = '(s.primary_activity_id = ? OR s.secondary_activity_id = ? OR s.activity_id = ?)'; array_push($params, $fAct, $fAct, $fAct); }
 if ($fQ !== '') { $where[] = '(s.first_name LIKE ? OR s.last_name LIKE ? OR s.email LIKE ? OR s.phone LIKE ?)'; $like = '%' . $fQ . '%'; array_push($params, $like, $like, $like, $like); }
-$rows = q('SELECT s.*, g.name AS group_name FROM signups s LEFT JOIN groups_ g ON g.id = s.group_id'
+$rows = q('SELECT s.*, g.name AS group_name FROM hm_signups s LEFT JOIN hm_groups g ON g.id = s.group_id'
     . ($where ? ' WHERE ' . implode(' AND ', $where) : '') . ' ORDER BY s.created_at ASC', $params)->fetchAll();
 
 $counts = ['all' => 0, 'pending' => 0, 'accepted' => 0, 'declined' => 0];
-foreach (q('SELECT status, COUNT(*) c FROM signups GROUP BY status')->fetchAll() as $c) { $counts[$c['status']] = (int)$c['c']; $counts['all'] += (int)$c['c']; }
+foreach (q('SELECT status, COUNT(*) c FROM hm_signups GROUP BY status')->fetchAll() as $c) { $counts[$c['status']] = (int)$c['c']; $counts['all'] += (int)$c['c']; }
 
 page_header('Sign-ups', true);
 ?>

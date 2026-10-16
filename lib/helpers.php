@@ -84,13 +84,13 @@ function setting(string $k, $default = null)
     static $cache = null;
     if ($cache === null) {
         $cache = [];
-        foreach (q('SELECT k, v FROM settings')->fetchAll() as $r) $cache[$r['k']] = $r['v'];
+        foreach (q('SELECT k, v FROM hm_settings')->fetchAll() as $r) $cache[$r['k']] = $r['v'];
     }
     return $cache[$k] ?? $default;
 }
 function set_setting(string $k, string $v): void
 {
-    q('INSERT INTO settings (k, v) VALUES (?, ?) ON DUPLICATE KEY UPDATE v = VALUES(v)', [$k, $v]);
+    q('INSERT INTO hm_settings (k, v) VALUES (?, ?) ON DUPLICATE KEY UPDATE v = VALUES(v)', [$k, $v]);
 }
 
 /* ---------- Auth ---------- */
@@ -100,7 +100,7 @@ function current_user(): ?array
     if ($u === false) {
         $u = null;
         if (!empty($_SESSION['uid'])) {
-            $u = q('SELECT id, name, email, role FROM users WHERE id = ?', [$_SESSION['uid']])->fetch() ?: null;
+            $u = q('SELECT id, name, email, role FROM hm_users WHERE id = ?', [$_SESSION['uid']])->fetch() ?: null;
         }
     }
     return $u;
@@ -130,9 +130,9 @@ function allowed_activity_ids(): array
     $u = current_user();
     if (!$u) return [];
     if ($u['role'] === 'admin') {
-        return array_map('intval', q('SELECT id FROM activities')->fetchAll(PDO::FETCH_COLUMN));
+        return array_map('intval', q('SELECT id FROM hm_activities')->fetchAll(PDO::FETCH_COLUMN));
     }
-    return array_map('intval', q('SELECT activity_id FROM user_activity WHERE user_id = ?', [$u['id']])->fetchAll(PDO::FETCH_COLUMN));
+    return array_map('intval', q('SELECT activity_id FROM hm_user_activity WHERE user_id = ?', [$u['id']])->fetchAll(PDO::FETCH_COLUMN));
 }
 function can_access_activity(int $activityId): bool
 {
@@ -150,14 +150,14 @@ function require_activity(int $activityId): void
 function activities(bool $onlyOpen = false): array
 {
     $sql = 'SELECT a.*,
-              (SELECT COUNT(*) FROM signups s WHERE s.activity_id = a.id AND s.status = \'accepted\') AS accepted_count
-            FROM activities a' . ($onlyOpen ? ' WHERE a.is_open = 1' : '') . ' ORDER BY a.sort_order, a.id';
+              (SELECT COUNT(*) FROM hm_signups s WHERE s.activity_id = a.id AND s.status = \'accepted\') AS accepted_count
+            FROM hm_activities a' . ($onlyOpen ? ' WHERE a.is_open = 1' : '') . ' ORDER BY a.sort_order, a.id';
     return q($sql)->fetchAll();
 }
 function activity(int $id): ?array
 {
-    $r = q('SELECT a.*, (SELECT COUNT(*) FROM signups s WHERE s.activity_id = a.id AND s.status = \'accepted\') AS accepted_count
-            FROM activities a WHERE a.id = ?', [$id])->fetch();
+    $r = q('SELECT a.*, (SELECT COUNT(*) FROM hm_signups s WHERE s.activity_id = a.id AND s.status = \'accepted\') AS accepted_count
+            FROM hm_activities a WHERE a.id = ?', [$id])->fetch();
     return $r ?: null;
 }
 function has_room(array $a): bool
