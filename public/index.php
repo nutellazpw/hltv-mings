@@ -55,9 +55,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $open) {
 page_header('Sign up');
 ?>
 <section class="hero">
-  <p class="eyebrow">HLTV Awards · Side activities</p>
+  <img class="hero-logo" src="assets/logo-hltv-awards-vertical.svg" alt="HLTV Awards by 1xBet">
+  <p class="eyebrow">Side activities</p>
   <h1>Mingle Activities</h1>
   <p class="lead"><?= nl2br(e(setting('intro_text', ''))) ?></p>
+  <hr class="rule">
 </section>
 
 <?php if ($done): ?>

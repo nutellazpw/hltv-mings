@@ -55,24 +55,24 @@ function send_mail(string $to, string $subject, array $paragraphs, ?array $butto
 
 function mail_template(string $title, array $paragraphs, ?array $button): string
 {
-    $logo = url('assets/logo-hltv-awards.png');
+    $logo = url('assets/logo-email.png');
     $body = '';
     foreach ($paragraphs as $p) {
-        $body .= '<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#d8dbe2">' . $p . '</p>';
+        $body .= '<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#e6e2da">' . $p . '</p>';
     }
     if ($button) {
-        $body .= '<p style="margin:24px 0"><a href="' . e($button[1]) . '" style="display:inline-block;background:#F2B705;color:#0b0d12;'
-            . 'text-decoration:none;font-weight:700;padding:12px 22px;border-radius:6px;font-size:15px">' . e($button[0]) . '</a></p>';
+        $body .= '<p style="margin:24px 0"><a href="' . e($button[1]) . '" style="display:inline-block;background:#E1C693;color:#181818;'
+            . 'text-decoration:none;font-weight:700;padding:12px 22px;font-size:14px;letter-spacing:2px;text-transform:uppercase">' . e($button[0]) . '</a></p>';
     }
-    return '<!doctype html><html><body style="margin:0;background:#0b0d12;font-family:Arial,Helvetica,sans-serif">'
-        . '<table width="100%" cellpadding="0" cellspacing="0" style="background:#0b0d12;padding:32px 12px"><tr><td align="center">'
-        . '<table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#151821;border-radius:10px;overflow:hidden">'
-        . '<tr><td style="padding:24px 28px;border-bottom:3px solid #F2B705">'
-        . '<img src="' . e($logo) . '" alt="HLTV Awards" height="40" style="display:block;height:40px;border:0"></td></tr>'
+    return '<!doctype html><html><body style="margin:0;background:#111111;font-family:Arial,Helvetica,sans-serif">'
+        . '<table width="100%" cellpadding="0" cellspacing="0" style="background:#111111;padding:32px 12px"><tr><td align="center">'
+        . '<table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#181818;border:1px solid #3a3326">'
+        . '<tr><td style="padding:24px 28px;border-bottom:2px solid #E1C693">'
+        . '<img src="' . e($logo) . '" alt="HLTV Awards" width="144" height="50" style="display:block;width:144px;height:50px;border:0"></td></tr>'
         . '<tr><td style="padding:28px">'
-        . '<h1 style="margin:0 0 20px;font-size:22px;color:#ffffff">' . e($title) . '</h1>' . $body
+        . '<h1 style="margin:0 0 20px;font-size:20px;letter-spacing:1px;text-transform:uppercase;color:#E1C693;font-family:Orbitron,Arial,sans-serif">' . e($title) . '</h1>' . $body
         . '</td></tr>'
-        . '<tr><td style="padding:18px 28px;background:#10121a;font-size:12px;line-height:1.5;color:#7d8394">'
+        . '<tr><td style="padding:18px 28px;background:#121212;font-size:12px;line-height:1.5;color:#8c877e">'
         . 'This is an automated message — please do not reply to this email, replies are not monitored.<br>'
         . 'HLTV Awards Mingle · organised with Relog Media</td></tr>'
         . '</table></td></tr></table></body></html>';
