@@ -599,3 +599,7 @@ input[type=checkbox], input[type=radio] { width: auto; min-height: 0; accent-col
   .hero .intro p { font-size: 15px; line-height: 1.6; }
   .hero .intro p:first-child { font-size: 16px; }
 }
+/* let the intro run wider than the form column on large screens */
+@media (min-width: 900px) {
+  .hero .intro { width: min(880px, calc(100vw - 48px)); max-width: none; margin-left: 50%; transform: translateX(-50%); }
+}
