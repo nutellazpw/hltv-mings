@@ -81,7 +81,7 @@ function mail_template(string $title, array $paragraphs, ?array $button): string
         . '</td></tr>'
         . '<tr><td style="padding:18px 28px;background:#121212;font-size:12px;line-height:1.5;color:#8c877e">'
         . 'This is an automated message — please do not reply to this email, replies are not monitored.<br>'
-        . 'HLTV Awards Mingle · organised by <a href="https://relog.gg" style="color:#E1C693;text-decoration:none">Relog Media</a></td></tr>'
+        . 'HLTV Awards Mingle · with help from <a href="https://relog.gg" style="color:#E1C693;text-decoration:none">Relog Media</a></td></tr>'
         . '</table></td></tr></table></body></html>';
 }
 

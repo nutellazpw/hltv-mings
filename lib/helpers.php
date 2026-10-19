@@ -209,5 +209,21 @@ function migrate(): void
             q("UPDATE hm_activities SET image = ? WHERE name = ? AND (image IS NULL OR image = '')", [sprintf($U, $id), $name]);
         }
         set_setting('schema_version', '2');
+        $v = 2;
     }
+    if ($v < 3) {
+        if (!q("SHOW COLUMNS FROM hm_signups LIKE 'discord'")->fetch()) {
+            q('ALTER TABLE hm_signups ADD COLUMN discord VARCHAR(64) NULL AFTER phone');
+        }
+        set_setting('schema_version', '3');
+    }
+}
+
+/** Normalise a Discord handle: trims, drops a leading @. Returns null if it doesn't look like one. */
+function clean_discord(string $s): ?string
+{
+    $s = ltrim(trim($s), '@');
+    // new usernames: 2-32 chars a-z 0-9 _ . ; legacy: Name#1234
+    if (preg_match('/^[A-Za-z0-9_.]{2,32}$/', $s) || preg_match('/^[^@#:`\s][^@#:`]{0,30}[^@#:`\s]#\d{4}$/u', $s)) return $s;
+    return null;
 }

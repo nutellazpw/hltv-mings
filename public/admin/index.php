@@ -53,13 +53,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif ($do === 'edit') {
             $fn = trim((string)$_POST['first_name']); $ln = trim((string)$_POST['last_name']);
             $em = mb_strtolower(trim((string)$_POST['email'])); $ph = trim((string)$_POST['phone']);
+            $dcRaw = trim((string)($_POST['discord'] ?? '')); $dc = $dcRaw === '' ? null : clean_discord($dcRaw);
             $p1 = (int)$_POST['primary'] ?: null; $p2 = (int)$_POST['secondary'] ?: null;
             if ($fn === '' || $ln === '' || !filter_var($em, FILTER_VALIDATE_EMAIL)) {
                 flash('Name and a valid email are required.', 'err');
             } else {
                 try {
-                    q('UPDATE hm_signups SET first_name=?, last_name=?, email=?, phone=?, primary_activity_id=?, secondary_activity_id=? WHERE id=?',
-                      [$fn, $ln, $em, $ph, $p1, $p2, $id]);
+                    q('UPDATE hm_signups SET first_name=?, last_name=?, email=?, phone=?, discord=?, primary_activity_id=?, secondary_activity_id=? WHERE id=?',
+                      [$fn, $ln, $em, $ph, $dc ?? ($dcRaw === '' ? null : $dcRaw), $p1, $p2, $id]);
                     flash('Saved.');
                 } catch (PDOException $ex) {
                     flash('Another sign-up already uses that email.', 'err');
@@ -79,10 +80,10 @@ if (isset($_GET['export'])) {
     header('Content-Disposition: attachment; filename="hltv-mingle-signups-' . date('Ymd-Hi') . '.csv"');
     $out = fopen('php://output', 'w');
     fwrite($out, "\xEF\xBB\xBF");
-    fputcsv($out, ['First name', 'Last name', 'Email', 'Phone', '1st choice', '2nd choice', 'Status', 'Assigned activity', 'Group', 'Checked in', 'Result', 'Signed up']);
+    fputcsv($out, ['Given name', 'Family name', 'Email', 'Phone', 'Discord', '1st choice', '2nd choice', 'Status', 'Assigned activity', 'Group', 'Checked in', 'Result', 'Signed up']);
     $rows = q('SELECT s.*, g.name AS group_name FROM hm_signups s LEFT JOIN hm_groups g ON g.id = s.group_id ORDER BY s.created_at')->fetchAll();
     foreach ($rows as $r) {
-        fputcsv($out, [$r['first_name'], $r['last_name'], $r['email'], $r['phone'],
+        fputcsv($out, [$r['first_name'], $r['last_name'], $r['email'], $r['phone'], $r['discord'] ?? '',
             $byId[(int)$r['primary_activity_id']]['name'] ?? '', $byId[(int)$r['secondary_activity_id']]['name'] ?? '',
             $r['status'], $byId[(int)$r['activity_id']]['name'] ?? '', $r['group_name'] ?? '',
             $r['checked_in'] ? 'yes' : 'no', $r['result'] ?? '', $r['created_at']]);
@@ -98,7 +99,7 @@ $fQ = trim((string)($_GET['q'] ?? ''));
 $where = []; $params = [];
 if (in_array($fStatus, ['pending', 'accepted', 'declined'], true)) { $where[] = 's.status = ?'; $params[] = $fStatus; }
 if ($fAct) { $where[] = '(s.primary_activity_id = ? OR s.secondary_activity_id = ? OR s.activity_id = ?)'; array_push($params, $fAct, $fAct, $fAct); }
-if ($fQ !== '') { $where[] = '(s.first_name LIKE ? OR s.last_name LIKE ? OR s.email LIKE ? OR s.phone LIKE ?)'; $like = '%' . $fQ . '%'; array_push($params, $like, $like, $like, $like); }
+if ($fQ !== '') { $where[] = '(s.first_name LIKE ? OR s.last_name LIKE ? OR s.email LIKE ? OR s.phone LIKE ? OR s.discord LIKE ?)'; $like = '%' . $fQ . '%'; array_push($params, $like, $like, $like, $like, $like); }
 $rows = q('SELECT s.*, g.name AS group_name FROM hm_signups s LEFT JOIN hm_groups g ON g.id = s.group_id'
     . ($where ? ' WHERE ' . implode(' AND ', $where) : '') . ' ORDER BY s.created_at ASC', $params)->fetchAll();
 
@@ -145,7 +146,7 @@ page_header('Sign-ups', true);
     <option value="0">All activities</option>
     <?php foreach ($acts as $a): ?><option value="<?= (int)$a['id'] ?>" <?= $fAct === (int)$a['id'] ? 'selected' : '' ?>><?= e($a['name']) ?></option><?php endforeach; ?>
   </select>
-  <input type="search" name="q" value="<?= e($fQ) ?>" placeholder="Search name, email, phone" aria-label="Search">
+  <input type="search" name="q" value="<?= e($fQ) ?>" placeholder="Search name, email, phone, Discord" aria-label="Search">
   <button class="btn" type="submit">Search</button>
   <?php if ($fAct || $fQ !== ''): ?><a class="btn btn-ghost" href="<?= e('?status=' . $fStatus) ?>">Clear</a><?php endif; ?>
 </form>
@@ -172,6 +173,7 @@ page_header('Sign-ups', true);
     <div class="contact">
       <a href="mailto:<?= e($r['email']) ?>"><?= e($r['email']) ?></a>
       <a href="tel:<?= e(preg_replace('/[^0-9+]/', '', $r['phone'])) ?>"><?= e($r['phone']) ?></a>
+      <?php if (!empty($r['discord'])): ?><span class="discord" title="Discord"><?= e($r['discord']) ?></span><?php endif; ?>
     </div>
     <div class="chips">
       <span class="chip<?= $inAct && $p1 && $inAct === (int)$p1['id'] ? ' chip-in' : '' ?>"><em>1st</em><?= e($p1['name'] ?? '—') ?><?php if ($p1): ?> <b class="<?= has_room($p1) ? '' : 'full' ?>"><?= e(capacity_label($p1)) ?></b><?php endif; ?></span>
@@ -214,10 +216,11 @@ page_header('Sign-ups', true);
           <?= csrf_field() ?>
           <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
           <input type="hidden" name="do" value="edit">
-          <label class="field"><span>First name</span><input name="first_name" value="<?= e($r['first_name']) ?>"></label>
-          <label class="field"><span>Last name</span><input name="last_name" value="<?= e($r['last_name']) ?>"></label>
+          <label class="field"><span>Given name</span><input name="first_name" value="<?= e($r['first_name']) ?>"></label>
+          <label class="field"><span>Family name</span><input name="last_name" value="<?= e($r['last_name']) ?>"></label>
           <label class="field"><span>Email</span><input type="email" name="email" value="<?= e($r['email']) ?>"></label>
           <label class="field"><span>Phone</span><input type="tel" name="phone" value="<?= e($r['phone']) ?>"></label>
+          <label class="field span2"><span>Discord</span><input name="discord" value="<?= e($r['discord'] ?? '') ?>" autocapitalize="off" spellcheck="false"></label>
           <label class="field"><span>1st choice</span><select name="primary"><option value="0">—</option><?php foreach ($acts as $a): ?><option value="<?= (int)$a['id'] ?>" <?= (int)$r['primary_activity_id'] === (int)$a['id'] ? 'selected' : '' ?>><?= e($a['name']) ?></option><?php endforeach; ?></select></label>
           <label class="field"><span>2nd choice</span><select name="secondary"><option value="0">—</option><?php foreach ($acts as $a): ?><option value="<?= (int)$a['id'] ?>" <?= (int)$r['secondary_activity_id'] === (int)$a['id'] ? 'selected' : '' ?>><?= e($a['name']) ?></option><?php endforeach; ?></select></label>
           <div class="inline span2">

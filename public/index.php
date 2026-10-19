@@ -5,7 +5,7 @@ require __DIR__ . '/../lib/bootstrap.php';
 $open = setting('signups_open', '1') === '1';
 $acts = activities(true);
 $errors = [];
-$old = ['first_name' => '', 'last_name' => '', 'email' => '', 'phone' => '', 'primary' => '', 'secondary' => ''];
+$old = ['first_name' => '', 'last_name' => '', 'email' => '', 'phone' => '', 'discord' => '', 'primary' => '', 'secondary' => ''];
 $done = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $open) {
@@ -15,10 +15,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $open) {
     // Honeypot: bots fill every field.
     if (!empty($_POST['website'])) { $done = true; }
     else {
-        if ($old['first_name'] === '' || mb_strlen($old['first_name']) > 80) $errors['first_name'] = 'Please enter your first name.';
-        if ($old['last_name'] === '' || mb_strlen($old['last_name']) > 80) $errors['last_name'] = 'Please enter your last name.';
+        if ($old['first_name'] === '' || mb_strlen($old['first_name']) > 80) $errors['first_name'] = 'Please enter your given name.';
+        if ($old['last_name'] === '' || mb_strlen($old['last_name']) > 80) $errors['last_name'] = 'Please enter your family name.';
         if (!filter_var($old['email'], FILTER_VALIDATE_EMAIL) || mb_strlen($old['email']) > 190) $errors['email'] = 'Please enter a valid email address.';
         if (!preg_match('/^\+?[0-9 ()\-\/]{6,30}$/', $old['phone'])) $errors['phone'] = 'Please enter a valid phone number, including country code.';
+        $discord = clean_discord($old['discord']);
+        if ($discord === null) $errors['discord'] = 'Please enter your Discord username (e.g. zywoo or name#1234).';
 
         $openIds = array_map(fn($a) => (string)$a['id'], $acts);
         if (!in_array($old['primary'], $openIds, true)) $errors['primary'] = 'Please choose your first-choice activity.';
@@ -39,9 +41,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $open) {
                 $done = true;
             } else {
                 $token = bin2hex(random_bytes(20));
-                q('INSERT INTO hm_signups (first_name, last_name, email, phone, primary_activity_id, secondary_activity_id, token)
-                   VALUES (?, ?, ?, ?, ?, ?, ?)', [
-                    $old['first_name'], $old['last_name'], $email, $old['phone'],
+                q('INSERT INTO hm_signups (first_name, last_name, email, phone, discord, primary_activity_id, secondary_activity_id, token)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)', [
+                    $old['first_name'], $old['last_name'], $email, $old['phone'], $discord,
                     (int)$old['primary'], $old['secondary'] === '' ? null : (int)$old['secondary'], $token,
                 ]);
                 $s = q('SELECT * FROM hm_signups WHERE id = ?', [db()->lastInsertId()])->fetch();
@@ -58,7 +60,11 @@ page_header('Sign up');
   <img class="hero-logo" src="assets/logo-hltv-awards-vertical.svg" alt="HLTV Awards by 1xBet">
   <p class="eyebrow">Side activities</p>
   <h1>Mingle Activities</h1>
-  <p class="lead"><?= nl2br(e(setting('intro_text', ''))) ?></p>
+  <div class="intro">
+    <?php foreach (preg_split('/\R\s*\R/', trim((string)setting('intro_text', ''))) as $para): if (trim($para) === '') continue; ?>
+      <p><?= nl2br(e(trim($para))) ?></p>
+    <?php endforeach; ?>
+  </div>
   <hr class="rule">
 </section>
 
@@ -78,12 +84,12 @@ page_header('Sign up');
   <h2>Your details</h2>
   <div class="grid2">
     <label class="field<?= isset($errors['first_name']) ? ' has-err' : '' ?>">
-      <span>First name</span>
+      <span>Given name</span>
       <input name="first_name" value="<?= e($old['first_name']) ?>" autocomplete="given-name" required>
       <?php if (isset($errors['first_name'])): ?><em><?= e($errors['first_name']) ?></em><?php endif; ?>
     </label>
     <label class="field<?= isset($errors['last_name']) ? ' has-err' : '' ?>">
-      <span>Last name</span>
+      <span>Family name</span>
       <input name="last_name" value="<?= e($old['last_name']) ?>" autocomplete="family-name" required>
       <?php if (isset($errors['last_name'])): ?><em><?= e($errors['last_name']) ?></em><?php endif; ?>
     </label>
@@ -97,7 +103,13 @@ page_header('Sign up');
       <input type="tel" name="phone" value="<?= e($old['phone']) ?>" placeholder="+381 60 123 4567" autocomplete="tel" required>
       <?php if (isset($errors['phone'])): ?><em><?= e($errors['phone']) ?></em><?php endif; ?>
     </label>
+    <label class="field span2<?= isset($errors['discord']) ? ' has-err' : '' ?>">
+      <span>Discord username</span>
+      <input name="discord" value="<?= e($old['discord']) ?>" placeholder="e.g. zywoo" autocomplete="off" autocapitalize="off" spellcheck="false" required>
+      <?php if (isset($errors['discord'])): ?><em><?= e($errors['discord']) ?></em><?php endif; ?>
+    </label>
   </div>
+  <p class="small muted req-note">All fields are required.</p>
 
   <h2>1st choice <small>required</small></h2>
   <?php if (isset($errors['primary'])): ?><p class="err"><?= e($errors['primary']) ?></p><?php endif; ?>
@@ -134,7 +146,7 @@ page_header('Sign up');
 
   <label class="check<?= isset($errors['consent']) ? ' has-err' : '' ?>">
     <input type="checkbox" name="consent" value="1" <?= !empty($_POST['consent']) ? 'checked' : '' ?>>
-    <span>I agree that my name, email and phone number are stored and used by the organisers only to manage HLTV Awards Mingle activities.</span>
+    <span>I agree that my name, email, phone number and Discord username are stored and used by the organisers only to manage HLTV Awards Mingle activities.</span>
   </label>
   <?php if (isset($errors['consent'])): ?><p class="err"><?= e($errors['consent']) ?></p><?php endif; ?>
 

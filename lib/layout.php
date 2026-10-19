@@ -20,7 +20,7 @@ function page_header(string $title, bool $admin = false): void
 <meta name="theme-color" content="#181818">
 <title><?= e($title) ?> · HLTV Awards Mingle</title>
 <link rel="preload" href="<?= $assets ?>/fonts/orbitron-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="<?= $assets ?>/style.css?v=8">
+<link rel="stylesheet" href="<?= $assets ?>/style.css?v=9">
 <link rel="icon" href="<?= $assets ?>/favicon.png">
 </head>
 <body class="<?= $admin ? 'is-admin' : 'is-public' ?>">
@@ -31,8 +31,8 @@ function page_header(string $title, bool $admin = false): void
       <span class="brand-sub">Mingle</span>
     </a>
     <?php if (!$admin): ?>
-    <a class="organiser" href="https://relog.gg" target="_blank" rel="noopener" title="Organised by Relog Media">
-      <span>Organised by</span><?= rlg_logo() ?>
+    <a class="organiser" href="https://relog.gg" target="_blank" rel="noopener" title="With help from Relog Media">
+      <span>With help from</span><?= rlg_logo() ?>
     </a>
     <?php endif; ?>
     <?php if ($u):
@@ -68,7 +68,7 @@ function page_footer(bool $admin = false): void
   <div class="wrap foot-in">
     <span class="foot-event">HLTV Awards Mingle</span>
     <a class="foot-by" href="https://relog.gg" target="_blank" rel="noopener">
-      <span>Organised &amp; produced by</span><?= rlg_logo() ?><span class="foot-url">relog.gg</span>
+      <span>With help from</span><?= rlg_logo() ?><span class="foot-url">relog.gg</span>
     </a>
   </div>
 </footer>
