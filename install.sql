@@ -48,9 +48,11 @@ CREATE TABLE IF NOT EXISTS hm_signups (
   email VARCHAR(190) NOT NULL UNIQUE,
   phone VARCHAR(40) NOT NULL,
   discord VARCHAR(64) NULL,
+  company VARCHAR(160) NULL,
   primary_activity_id INT NULL,
   secondary_activity_id INT NULL,
   status ENUM('pending','accepted','declined') NOT NULL DEFAULT 'pending',
+  notified VARCHAR(16) NULL,       -- last decision emailed to the guest
   activity_id INT NULL,            -- activity actually assigned when accepted
   group_id INT NULL,
   checked_in TINYINT(1) NOT NULL DEFAULT 0,
@@ -99,6 +101,7 @@ INSERT INTO hm_activities (name, description, capacity, sort_order, image) VALUE
 ('Pilates', 'Subject to number of sign-ups.', 0, 6, 'https://images.unsplash.com/photo-1747239685045-fcbcf98985db?w=1200&h=675&fit=crop&q=80&auto=format');
 
 INSERT INTO hm_settings (k, v) VALUES
-('schema_version', '3'),
+('schema_version', '4'),
+('decision_emails', 'immediate'),
 ('signups_open', '1'),
 ('intro_text', 'Pick the activity you would like to join during HLTV Awards week, plus a backup choice. Spots are limited — we will confirm your place by email.');

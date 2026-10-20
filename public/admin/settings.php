@@ -9,6 +9,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($do === 'save') {
         set_setting('signups_open', !empty($_POST['signups_open']) ? '1' : '0');
         set_setting('intro_text', trim((string)$_POST['intro_text']));
+        set_setting('decision_emails', ($_POST['decision_emails'] ?? '') === 'batch' ? 'batch' : 'immediate');
         flash('Settings saved.');
     } elseif ($do === 'test_mail') {
         $to = trim((string)($_POST['to'] ?? '')) ?: $me['email'];
@@ -32,7 +33,11 @@ page_header('Settings', true);
   <?= csrf_field() ?>
   <input type="hidden" name="do" value="save">
   <label class="check"><input type="checkbox" name="signups_open" value="1" <?= setting('signups_open', '1') === '1' ? 'checked' : '' ?>> Sign-ups open</label>
-  <label class="field"><span>Intro text on the sign-up page</span><textarea name="intro_text" rows="3"><?= e(setting('intro_text', '')) ?></textarea></label>
+  <fieldset class="field radios"><span>Accept / decline emails</span>
+    <label class="check"><input type="radio" name="decision_emails" value="immediate" <?= setting('decision_emails', 'immediate') === 'immediate' ? 'checked' : '' ?>> <span><b>Send immediately</b> — the guest is emailed as soon as you press Accept or Decline.</span></label>
+    <label class="check"><input type="radio" name="decision_emails" value="batch" <?= setting('decision_emails', 'immediate') === 'batch' ? 'checked' : '' ?>> <span><b>Send later, all at once</b> — review everyone first, then press <i>Send decision emails</i> on the Sign-ups page (e.g. after sign-ups close).</span></label>
+  </fieldset>
+  <label class="field"><span>Intro text on the sign-up page</span><textarea name="intro_text" rows="10"><?= e(setting('intro_text', '')) ?></textarea></label>
   <button class="btn btn-primary">Save</button>
   <p class="small muted">Public sign-up link: <code><?= e(url('')) ?></code></p>
 </form>

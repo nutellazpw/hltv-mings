@@ -60,9 +60,10 @@ foreach ($sections as [$g, $list]): if (!$list) continue; ?>
   <?php if (!empty($g['info'])): ?><p class="small muted"><?= nl2br(e($g['info'])) ?></p><?php endif; ?>
   <ul class="ci-list">
   <?php foreach ($list as $p): ?>
-    <li class="ci<?= $p['checked_in'] ? ' is-in' : '' ?>" data-search="<?= e(mb_strtolower(full_name($p) . ' ' . $p['phone'] . ' ' . $p['email'] . ' ' . ($p['discord'] ?? ''))) ?>">
+    <li class="ci<?= $p['checked_in'] ? ' is-in' : '' ?>" data-search="<?= e(mb_strtolower(full_name($p) . ' ' . $p['phone'] . ' ' . $p['email'] . ' ' . ($p['discord'] ?? '') . ' ' . ($p['company'] ?? ''))) ?>">
       <div class="ci-who">
         <strong><?= e(full_name($p)) ?></strong>
+        <?php if (!empty($p['company'])): ?><span class="small company"><?= e($p['company']) ?></span><?php endif; ?>
         <span class="small muted"><a href="tel:<?= e($p['phone']) ?>"><?= e($p['phone']) ?></a><?= !empty($p['discord']) ? ' · <span class="discord">' . e($p['discord']) . '</span>' : '' ?> · <?= e($p['email']) ?></span>
       </div>
       <form method="post" class="ci-form">

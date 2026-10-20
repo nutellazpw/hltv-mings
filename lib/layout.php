@@ -20,7 +20,7 @@ function page_header(string $title, bool $admin = false): void
 <meta name="theme-color" content="#181818">
 <title><?= e($title) ?> · HLTV Awards Mingle</title>
 <link rel="preload" href="<?= $assets ?>/fonts/orbitron-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="<?= $assets ?>/style.css?v=10">
+<link rel="stylesheet" href="<?= $assets ?>/style.css?v=11">
 <link rel="icon" href="<?= $assets ?>/favicon.png">
 </head>
 <body class="<?= $admin ? 'is-admin' : 'is-public' ?>">
@@ -38,7 +38,7 @@ function page_header(string $title, bool $admin = false): void
     <?php if ($u):
       $here = basename($_SERVER['SCRIPT_NAME'] ?? '');
       $items = $u['role'] === 'admin'
-        ? ['index.php' => 'Sign-ups', 'activities.php' => 'Activities', 'groups.php' => 'Groups', 'checkin.php' => 'Check-in', 'documents.php' => 'Documents', 'users.php' => 'Team', 'settings.php' => 'Settings']
+        ? ['index.php' => 'Sign-ups', 'activities.php' => 'Activities', 'groups.php' => 'Groups', 'checkin.php' => 'Check-in', 'documents.php' => 'Documents', 'emails.php' => 'Emails', 'users.php' => 'Team', 'settings.php' => 'Settings']
         : ['checkin.php' => 'Check-in', 'groups.php' => 'Results', 'activities.php' => 'Activity', 'documents.php' => 'Documents'];
       $current = $items[$here] ?? 'Menu'; ?>
     <details class="navwrap">

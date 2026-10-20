@@ -5,7 +5,7 @@ require __DIR__ . '/../lib/bootstrap.php';
 $open = setting('signups_open', '1') === '1';
 $acts = activities(true);
 $errors = [];
-$old = ['first_name' => '', 'last_name' => '', 'email' => '', 'phone' => '', 'discord' => '', 'primary' => '', 'secondary' => ''];
+$old = ['first_name' => '', 'last_name' => '', 'email' => '', 'phone' => '', 'discord' => '', 'company' => '', 'primary' => '', 'secondary' => ''];
 $done = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $open) {
@@ -21,6 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $open) {
         if (!preg_match('/^\+?[0-9 ()\-\/]{6,30}$/', $old['phone'])) $errors['phone'] = 'Please enter a valid phone number, including country code.';
         $discord = clean_discord($old['discord']);
         if ($discord === null) $errors['discord'] = 'Please enter your Discord username (e.g. zywoo or name#1234).';
+        if ($old['company'] === '' || mb_strlen($old['company']) > 160) $errors['company'] = 'Please enter your company and position.';
 
         $openIds = array_map(fn($a) => (string)$a['id'], $acts);
         if (!in_array($old['primary'], $openIds, true)) $errors['primary'] = 'Please choose your first-choice activity.';
@@ -41,9 +42,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $open) {
                 $done = true;
             } else {
                 $token = bin2hex(random_bytes(20));
-                q('INSERT INTO hm_signups (first_name, last_name, email, phone, discord, primary_activity_id, secondary_activity_id, token)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)', [
-                    $old['first_name'], $old['last_name'], $email, $old['phone'], $discord,
+                q('INSERT INTO hm_signups (first_name, last_name, email, phone, discord, company, primary_activity_id, secondary_activity_id, token)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+                    $old['first_name'], $old['last_name'], $email, $old['phone'], $discord, $old['company'],
                     (int)$old['primary'], $old['secondary'] === '' ? null : (int)$old['secondary'], $token,
                 ]);
                 $s = q('SELECT * FROM hm_signups WHERE id = ?', [db()->lastInsertId()])->fetch();
@@ -103,10 +104,15 @@ page_header('Sign up');
       <input type="tel" name="phone" value="<?= e($old['phone']) ?>" placeholder="+381 60 123 4567" autocomplete="tel" required>
       <?php if (isset($errors['phone'])): ?><em><?= e($errors['phone']) ?></em><?php endif; ?>
     </label>
-    <label class="field span2<?= isset($errors['discord']) ? ' has-err' : '' ?>">
+    <label class="field<?= isset($errors['discord']) ? ' has-err' : '' ?>">
       <span>Discord username</span>
       <input name="discord" value="<?= e($old['discord']) ?>" placeholder="e.g. zywoo" autocomplete="off" autocapitalize="off" spellcheck="false" required>
       <?php if (isset($errors['discord'])): ?><em><?= e($errors['discord']) ?></em><?php endif; ?>
+    </label>
+    <label class="field<?= isset($errors['company']) ? ' has-err' : '' ?>">
+      <span>Company / Position</span>
+      <input name="company" value="<?= e($old['company']) ?>" placeholder="e.g. Team Vitality – Content Manager" autocomplete="organization-title" maxlength="160" required>
+      <?php if (isset($errors['company'])): ?><em><?= e($errors['company']) ?></em><?php endif; ?>
     </label>
   </div>
   <p class="small muted req-note">All fields are required.</p>
@@ -146,7 +152,7 @@ page_header('Sign up');
 
   <label class="check<?= isset($errors['consent']) ? ' has-err' : '' ?>">
     <input type="checkbox" name="consent" value="1" <?= !empty($_POST['consent']) ? 'checked' : '' ?>>
-    <span>I agree that my name, email, phone number and Discord username are stored and used by the organisers only to manage HLTV Awards Mingle activities.</span>
+    <span>I agree that my name, email, phone number, Discord username and company/position are stored and used by the organisers only to manage HLTV Awards Mingle activities.</span>
   </label>
   <?php if (isset($errors['consent'])): ?><p class="err"><?= e($errors['consent']) ?></p><?php endif; ?>
 

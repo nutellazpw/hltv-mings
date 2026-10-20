@@ -143,7 +143,7 @@ page_header('Groups', true);
     <tbody>
     <?php foreach ($people as $p): ?>
       <tr class="<?= $p['group_id'] ? '' : 'nogroup' ?>">
-        <td class="td-name" data-label="Name"><?= e(full_name($p)) ?><?= $p['checked_in'] ? ' <span class="badge badge-in">In</span>' : '' ?></td>
+        <td class="td-name" data-label="Name"><?= e(full_name($p)) ?><?= !empty($p['company']) ? '<br><span class="small company">' . e($p['company']) . '</span>' : '' ?><?= $p['checked_in'] ? ' <span class="badge badge-in">In</span>' : '' ?></td>
         <td class="small td-phone" data-label="Phone"><a href="tel:<?= e(preg_replace('/[^0-9+]/', '', $p['phone'])) ?>"><?= e($p['phone']) ?></a><?= !empty($p['discord']) ? '<br><span class="discord">' . e($p['discord']) . '</span>' : '' ?></td>
         <td data-label="Group">
           <?php if ($admin): ?>

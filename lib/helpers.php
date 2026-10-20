@@ -216,7 +216,25 @@ function migrate(): void
             q('ALTER TABLE hm_signups ADD COLUMN discord VARCHAR(64) NULL AFTER phone');
         }
         set_setting('schema_version', '3');
+        $v = 3;
     }
+    if ($v < 4) {
+        if (!q("SHOW COLUMNS FROM hm_signups LIKE 'company'")->fetch()) {
+            q('ALTER TABLE hm_signups ADD COLUMN company VARCHAR(160) NULL AFTER discord');
+        }
+        if (!q("SHOW COLUMNS FROM hm_signups LIKE 'notified'")->fetch()) {
+            q('ALTER TABLE hm_signups ADD COLUMN notified VARCHAR(16) NULL AFTER status');
+            // decisions made so far were emailed immediately (old behaviour)
+            q("UPDATE hm_signups SET notified = status WHERE status IN ('accepted','declined')");
+        }
+        set_setting('schema_version', '4');
+    }
+}
+
+/** Accepted/declined guests whose current decision has not been emailed yet. */
+function unsent_decisions(): array
+{
+    return q("SELECT * FROM hm_signups WHERE status IN ('accepted','declined') AND (notified IS NULL OR notified <> status) ORDER BY id")->fetchAll();
 }
 
 /** Normalise a Discord handle: trims, drops a leading @. Returns null if it doesn't look like one. */

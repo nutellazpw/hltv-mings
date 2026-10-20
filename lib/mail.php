@@ -95,53 +95,69 @@ function mail_plaintext(array $paragraphs, ?array $button): string
     return $t . "This is an automated message — please do not reply to this email.\n";
 }
 
-/* ---------- Message types ---------- */
+/* ---------- Message types ----------
+   Each builder returns [subject, paragraphs (HTML-escaped), button|null].
+   $ctx can override the activity / group (used by the admin email preview). */
 
-function mail_signup_received(array $s): bool
+const MAIL_TYPES = [
+    'received' => ['label' => 'Sign-up received',   'when' => 'Immediately, when a guest submits the sign-up form.'],
+    'accepted' => ['label' => 'Spot confirmed',     'when' => 'When an admin presses Accept 1st / Accept 2nd / Accept into another activity with "Email guest" ticked — or later, with "Send decision emails" on the Sign-ups page.'],
+    'declined' => ['label' => 'No spot available',  'when' => 'When an admin presses Decline with "Email guest" ticked — or later, with "Send decision emails" on the Sign-ups page.'],
+    'group'    => ['label' => 'Group assignment',   'when' => 'Only when an admin presses "Email all groups" or "Email group" on the Groups page.'],
+    'results'  => ['label' => 'Results published',  'when' => 'When an admin presses "Publish results" for an activity with "email participants" ticked.'],
+];
+
+function mail_build(string $type, array $s, array $ctx = []): array
 {
-    $prim = $s['primary_activity_id'] ? activity((int)$s['primary_activity_id']) : null;
-    $sec  = $s['secondary_activity_id'] ? activity((int)$s['secondary_activity_id']) : null;
-    $p = ['Hi ' . e($s['first_name']) . ',',
-        'Thanks for signing up for HLTV Awards Mingle activities. We have received your choices:',
-        '<strong>1st choice:</strong> ' . e($prim['name'] ?? '—') . '<br><strong>2nd choice:</strong> ' . e($sec['name'] ?? '—'),
-        'Spots are limited, so every sign-up is reviewed by the organisers. You will get another email as soon as your place is confirmed.'];
-    return send_mail($s['email'], 'We received your sign-up', $p, ['View my status', status_link($s)]);
+    $hi = 'Hi ' . e($s['first_name']) . ',';
+    $act = $ctx['activity'] ?? (!empty($s['activity_id']) ? activity((int)$s['activity_id']) : null);
+    switch ($type) {
+        case 'received':
+            $prim = $ctx['primary'] ?? (!empty($s['primary_activity_id']) ? activity((int)$s['primary_activity_id']) : null);
+            $sec  = $ctx['secondary'] ?? (!empty($s['secondary_activity_id']) ? activity((int)$s['secondary_activity_id']) : null);
+            return ['We received your sign-up', [$hi,
+                'Thanks for signing up for HLTV Awards Mingle activities. We have received your choices:',
+                '<strong>1st choice:</strong> ' . e($prim['name'] ?? '—') . '<br><strong>2nd choice:</strong> ' . e($sec['name'] ?? '—'),
+                'Spots are limited, so every sign-up is reviewed by the organisers. You will receive another email letting you know whether you have secured a spot.'],
+                ['View my status', status_link($s)]];
+        case 'accepted':
+            $p = [$hi, 'Good news — your spot is confirmed for <strong>' . e($act['name'] ?? '') . '</strong>.'];
+            if (!empty($act['details'])) $p[] = nl2br(e($act['details']));
+            $p[] = 'We will let you know which group you are in closer to the activity. You can always check your status at the link below.';
+            return ['You are in: ' . ($act['name'] ?? 'activity confirmed'), $p, ['View my status', status_link($s)]];
+        case 'declined':
+            return ['About your HLTV Awards Mingle sign-up', [$hi,
+                'Thank you for your interest in HLTV Awards Mingle activities. Unfortunately, both of your chosen activities are fully booked and we are not able to offer you a spot this time.',
+                'We hope to see you at the HLTV Awards!'], null];
+        case 'group':
+            $g = $ctx['group'] ?? (!empty($s['group_id']) ? q('SELECT * FROM hm_groups WHERE id = ?', [$s['group_id']])->fetch() : null);
+            $p = [$hi, 'Your group for <strong>' . e($act['name'] ?? '') . '</strong> is ready: <strong>' . e($g['name'] ?? '') . '</strong>.'];
+            if (!empty($g['info'])) $p[] = nl2br(e($g['info']));
+            if (!empty($act['details'])) $p[] = nl2br(e($act['details']));
+            $p[] = 'Your status page shows your group and teammates, and will show results after the activity.';
+            return ['Your group: ' . ($g['name'] ?? '') . ' — ' . ($act['name'] ?? ''), $p, ['View my group', status_link($s)]];
+        case 'results':
+            return ['Results are in: ' . ($act['name'] ?? ''), [$hi,
+                'Results for <strong>' . e($act['name'] ?? '') . '</strong> are now live. Thanks for taking part!'],
+                ['See results', status_link($s)]];
+    }
+    throw new InvalidArgumentException('Unknown mail type ' . $type);
 }
 
-function mail_accepted(array $s): bool
+function mail_type(string $type, array $s, array $ctx = [], ?string $to = null): bool
 {
-    $a = activity((int)$s['activity_id']);
-    $p = ['Hi ' . e($s['first_name']) . ',',
-        'Good news — your spot is confirmed for <strong>' . e($a['name'] ?? '') . '</strong>.'];
-    if (!empty($a['details'])) $p[] = nl2br(e($a['details']));
-    $p[] = 'We will let you know which group you are in closer to the activity. You can always check your status at the link below.';
-    return send_mail($s['email'], 'You are in: ' . ($a['name'] ?? 'activity confirmed'), $p, ['View my status', status_link($s)]);
+    [$subject, $p, $button] = mail_build($type, $s, $ctx);
+    return send_mail($to ?? $s['email'], $subject, $p, $button);
 }
 
-function mail_declined(array $s): bool
+/** Records which decision (accepted/declined) the guest was last emailed about. */
+function mark_notified(array $s, string $status): void
 {
-    $p = ['Hi ' . e($s['first_name']) . ',',
-        'Thank you for your interest in HLTV Awards Mingle activities. Unfortunately, both of your chosen activities are fully booked and we are not able to offer you a spot this time.',
-        'We hope to see you at the HLTV Awards!'];
-    return send_mail($s['email'], 'About your HLTV Awards Mingle sign-up', $p);
+    q('UPDATE hm_signups SET notified = ? WHERE id = ?', [$status, $s['id']]);
 }
 
-function mail_group(array $s): bool
-{
-    $a = activity((int)$s['activity_id']);
-    $g = $s['group_id'] ? q('SELECT * FROM hm_groups WHERE id = ?', [$s['group_id']])->fetch() : null;
-    $p = ['Hi ' . e($s['first_name']) . ',',
-        'Your group for <strong>' . e($a['name'] ?? '') . '</strong> is ready: <strong>' . e($g['name'] ?? '') . '</strong>.'];
-    if (!empty($g['info'])) $p[] = nl2br(e($g['info']));
-    if (!empty($a['details'])) $p[] = nl2br(e($a['details']));
-    $p[] = 'Your status page shows your group and teammates, and will show results after the activity.';
-    return send_mail($s['email'], 'Your group: ' . ($g['name'] ?? '') . ' — ' . ($a['name'] ?? ''), $p, ['View my group', status_link($s)]);
-}
-
-function mail_results(array $s): bool
-{
-    $a = activity((int)$s['activity_id']);
-    $p = ['Hi ' . e($s['first_name']) . ',',
-        'Results for <strong>' . e($a['name'] ?? '') . '</strong> are now live. Thanks for taking part!'];
-    return send_mail($s['email'], 'Results are in: ' . ($a['name'] ?? ''), $p, ['See results', status_link($s)]);
-}
+function mail_signup_received(array $s): bool { return mail_type('received', $s); }
+function mail_accepted(array $s): bool { $ok = mail_type('accepted', $s); if ($ok) mark_notified($s, 'accepted'); return $ok; }
+function mail_declined(array $s): bool { $ok = mail_type('declined', $s); if ($ok) mark_notified($s, 'declined'); return $ok; }
+function mail_group(array $s): bool { return mail_type('group', $s); }
+function mail_results(array $s): bool { return mail_type('results', $s); }
