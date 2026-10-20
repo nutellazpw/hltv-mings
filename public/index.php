@@ -34,12 +34,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $open) {
             $email = mb_strtolower($old['email']);
             $existing = q('SELECT * FROM hm_signups WHERE email = ?', [$email])->fetch();
             if ($existing) {
-                // Don't reveal anything on screen; re-send the status link to the address owner.
-                send_mail($existing['email'], 'Your HLTV Awards Mingle sign-up', [
-                    'Hi ' . e($existing['first_name']) . ',',
-                    'Someone (hopefully you) tried to sign up again with this email address. You are already signed up — changes to your choices can only be made by the organisers.',
-                ], ['View my status', status_link($existing)]);
-                $done = true;
+                // No email is sent at sign-up; tell them on screen instead.
+                $errors['email'] = 'This email address is already signed up. If you need to change your choices, please contact the organisers.';
             } else {
                 $token = bin2hex(random_bytes(20));
                 q('INSERT INTO hm_signups (first_name, last_name, email, phone, discord, company, primary_activity_id, secondary_activity_id, token)
@@ -47,12 +43,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $open) {
                     $old['first_name'], $old['last_name'], $email, $old['phone'], $discord, $old['company'],
                     (int)$old['primary'], $old['secondary'] === '' ? null : (int)$old['secondary'], $token,
                 ]);
-                $s = q('SELECT * FROM hm_signups WHERE id = ?', [db()->lastInsertId()])->fetch();
-                mail_signup_received($s);
-                $done = true;
+                // Post/Redirect/Get: a refresh can't submit twice, and the confirmation survives the redirect.
+                $_SESSION['signup_done'] = (int)db()->lastInsertId();
+                redirect('./?thanks=1#signup-done');
             }
         }
     }
+}
+
+$doneSignup = null;
+if (isset($_GET['thanks']) && !empty($_SESSION['signup_done'])) {
+    $doneSignup = q('SELECT * FROM hm_signups WHERE id = ?', [(int)$_SESSION['signup_done']])->fetch() ?: null;
 }
 
 page_header('Sign up');
@@ -70,13 +71,24 @@ page_header('Sign up');
 </section>
 
 <?php if ($done): ?>
-  <div class="card card-success">
-    <h2>Thanks — you're on the list</h2>
-    <p>Check your inbox for a confirmation email with a link to your personal status page. The organisers will review your sign-up and email you once your spot is confirmed.</p>
-    <p class="small muted">Didn't get it? Check your spam folder.</p>
+  <div class="card card-success" id="signup-done"><h2>Thank you</h2><p>Your sign-up has been received.</p></div>
+<?php elseif ($doneSignup):
+  $p1 = $doneSignup['primary_activity_id'] ? activity((int)$doneSignup['primary_activity_id']) : null;
+  $p2 = $doneSignup['secondary_activity_id'] ? activity((int)$doneSignup['secondary_activity_id']) : null; ?>
+  <div class="card card-success done-card" id="signup-done">
+    <p class="done-check" aria-hidden="true">&#10003;</p>
+    <h2>You're signed up, <?= e($doneSignup['first_name']) ?>!</h2>
+    <p>Thank you — your sign-up for HLTV Awards Mingle activities is complete.</p>
+    <div class="done-choices">
+      <div><span>1st choice</span><strong><?= e($p1['name'] ?? '—') ?></strong></div>
+      <div><span>2nd choice</span><strong><?= e($p2['name'] ?? 'None') ?></strong></div>
+    </div>
+    <p>Spots are limited, so every sign-up is reviewed by the organisers. We will email you at <strong><?= e($doneSignup['email']) ?></strong> to let you know whether you have secured a spot.</p>
+    <p class="small muted">You can check your status at any time on your personal page — bookmark it if you like.</p>
+    <p><a class="btn" href="<?= e(status_link($doneSignup)) ?>">View my status</a></p>
   </div>
 <?php elseif (!$open): ?>
-  <div class="card"><h2>Sign-ups are closed</h2><p>Thanks for your interest. If you already signed up, use the link from your confirmation email to check your status.</p></div>
+  <div class="card"><h2>Sign-ups are closed</h2><p>Thanks for your interest. If you already signed up, we will email you to let you know whether you have secured a spot.</p></div>
 <?php else: ?>
 <form method="post" class="card form" novalidate>
   <?= csrf_field() ?>

@@ -100,7 +100,6 @@ function mail_plaintext(array $paragraphs, ?array $button): string
    $ctx can override the activity / group (used by the admin email preview). */
 
 const MAIL_TYPES = [
-    'received' => ['label' => 'Sign-up received',   'when' => 'Immediately, when a guest submits the sign-up form.'],
     'accepted' => ['label' => 'Spot confirmed',     'when' => 'When an admin presses Accept 1st / Accept 2nd / Accept into another activity with "Email guest" ticked — or later, with "Send decision emails" on the Sign-ups page.'],
     'declined' => ['label' => 'No spot available',  'when' => 'When an admin presses Decline with "Email guest" ticked — or later, with "Send decision emails" on the Sign-ups page.'],
     'group'    => ['label' => 'Group assignment',   'when' => 'Only when an admin presses "Email all groups" or "Email group" on the Groups page.'],

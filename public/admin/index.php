@@ -57,12 +57,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             q('UPDATE hm_signups SET status = \'pending\', activity_id = NULL, group_id = NULL, checked_in = 0 WHERE id = ?', [$id]);
             flash(full_name($s) . ' moved back to pending (no email sent).');
         } elseif ($do === 'resend') {
-            $ok = match ($s['status']) {
-                'accepted' => $s['group_id'] ? mail_group($s) : mail_accepted($s),
-                'declined' => mail_declined($s),
-                default => mail_signup_received($s),
-            };
-            flash($ok ? 'Email re-sent to ' . $s['email'] . '.' : 'Email failed — check Settings → Mail log.', $ok ? 'ok' : 'err');
+            if ($s['status'] === 'pending') {
+                flash('Nothing to re-send yet — guests get no email until they are accepted or declined.', 'err');
+            } else {
+                $ok = match ($s['status']) {
+                    'accepted' => $s['group_id'] ? mail_group($s) : mail_accepted($s),
+                    default => mail_declined($s),
+                };
+                flash($ok ? 'Email re-sent to ' . $s['email'] . '.' : 'Email failed — check Settings → Mail log.', $ok ? 'ok' : 'err');
+            }
         } elseif ($do === 'edit') {
             $fn = trim((string)$_POST['first_name']); $ln = trim((string)$_POST['last_name']);
             $em = mb_strtolower(trim((string)$_POST['email'])); $ph = trim((string)$_POST['phone']);
@@ -233,7 +236,7 @@ page_header('Sign-ups', true);
             </span>
           </label>
           <div class="inline">
-            <button class="btn" name="do" value="resend">Re-send last email</button>
+            <?php if ($r['status'] !== 'pending'): ?><button class="btn" name="do" value="resend">Re-send last email</button><?php endif; ?>
             <?php if ($r['status'] !== 'pending'): ?><button class="btn" name="do" value="reset" data-confirm="Move back to pending? (no email is sent)">Back to pending</button><?php endif; ?>
             <a class="btn btn-ghost" href="<?= e(status_link($r)) ?>" target="_blank" rel="noopener">Guest page ↗</a>
           </div>

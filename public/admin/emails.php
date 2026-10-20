@@ -29,7 +29,7 @@ $mode = setting('decision_emails', 'immediate');
 page_header('Emails', true);
 ?>
 <div class="pagehead"><h1>Emails</h1></div>
-<p class="muted small hint">Every email guests can receive, shown with sample data (guest "Alex", activity <b><?= e($sampleAct['name']) ?></b>). Texts in the emails come from what you enter in <b>Activities</b> (details for confirmed guests) and <b>Groups</b> (time / meeting point). All emails are sent from <code><?= e(cfg('smtp.from')) ?></code> with a "do not reply" note. Accept / decline emails are currently set to <b><?= $mode === 'batch' ? 'send later, all at once' : 'send immediately' ?></b> — change this in <a href="settings.php">Settings</a>.</p>
+<p class="muted small hint">No email is sent when a guest signs up — they see a confirmation on the sign-up page instead. Below is every email guests can receive, shown with sample data (guest "Alex", activity <b><?= e($sampleAct['name']) ?></b>). Texts in the emails come from what you enter in <b>Activities</b> (details for confirmed guests) and <b>Groups</b> (time / meeting point). All emails are sent from <code><?= e(cfg('smtp.from')) ?></code> with a "do not reply" note. Accept / decline emails are currently set to <b><?= $mode === 'batch' ? 'send later, all at once' : 'send immediately' ?></b> — change this in <a href="settings.php">Settings</a>.</p>
 
 <?php $n = 0; foreach (MAIL_TYPES as $type => $info): $n++;
   [$subject, $paras, $button] = mail_build($type, $sample, $ctx);
